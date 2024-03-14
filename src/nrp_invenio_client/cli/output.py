@@ -1,5 +1,5 @@
 import json
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Generator, Any
 
 import yaml
 from tabulate import tabulate
@@ -90,7 +90,7 @@ def sort_header(header, order):
         header.sort()
 
 
-def print_output_list(data: Iterable[Dict], output_format: str):
+def print_output_list(data: Iterable[Dict]|Generator[Dict, Any, None], output_format: str):
     if not output_format:
         output_format = "table"
     if output_format == "json":
@@ -114,5 +114,4 @@ def sorted_data(data):
             ),
             x[0],
         )
-
     return dict(sorted(data.items(), key=key))
