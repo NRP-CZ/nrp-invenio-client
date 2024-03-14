@@ -25,4 +25,4 @@ dev = [
 ]
 
 [project.scripts]
-nrp-command = "nrp_invenio_client.cli:nrp_command"
+nrp-cmd = "nrp_invenio_client.cli:nrp_command"
