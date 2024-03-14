@@ -1,7 +1,7 @@
 [project]
-name = "nrp-cmd"
+name = "nrp-invenio-client"
 version = "0.1.0"
-description = "Default template for PDM package"
+description = "Python and commandline client for NRP Invenio API"
 authors = [
     {name = "Mirek Simek", email = "miroslav.simek@cesnet.cz"},
 ]
