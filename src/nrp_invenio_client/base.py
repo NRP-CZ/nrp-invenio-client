@@ -61,6 +61,7 @@ class NRPInvenioClient:
         verify: str | bool = True,
         retry_count=10,
         retry_interval=10,
+        repository_config: NRPConfig = None,
     ):
         """
         Initialize the API client. Note: the parameters here are fixed for the lifetime of the client, can not be changed later.
@@ -71,6 +72,7 @@ class NRPInvenioClient:
         :param retry_count:     number of retries for GET requests
         :param retry_interval:  interval between retries for GET requests, if server does not respond with a Retry-After header
         """
+        self._repository_config = repository_config
         self._server_url = server_url
         self._token = token
         self._verify = verify
@@ -126,7 +128,12 @@ class NRPInvenioClient:
                     repository_config.retry_interval,
                 )
             ),
+            repository_config = repository_config
         )
+
+    @property
+    def repository_config(self):
+        return self._repository_config
 
     #
     # Specialised endpoints
@@ -259,6 +266,7 @@ class NRPInvenioClient:
             method="GET",
             url=urllib.parse.urljoin(self._server_url, path),
             headers=headers,
+            follow_redirects=True,
         ) as stream:
             yield stream
 

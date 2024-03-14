@@ -2,6 +2,7 @@ import typing
 from urllib.parse import urljoin
 
 from nrp_invenio_client.config import NRPConfig
+from nrp_invenio_client.files import NRPFile, NRPRecordFiles
 from nrp_invenio_client.utils import (
     get_mid,
     is_doi,
@@ -13,49 +14,6 @@ from nrp_invenio_client.utils import (
 
 if typing.TYPE_CHECKING:
     from nrp_invenio_client.base import NRPInvenioClient
-
-
-class NRPFile:
-    def __init__(self, *, record: "NRPRecord", key: str, metadata: typing.Any):
-        self._record = record
-        self._key = key
-        self._metadata = metadata
-
-    @property
-    def metadata(self):
-        return self._metadata
-
-    @property
-    def links(self):
-        return self._metadata["links"]
-
-    def delete(self):
-        self._record.files.pop(self._key)
-        raise NotImplementedError()
-
-    def upload(self, content):
-        raise NotImplementedError()
-
-    def open(self):
-        raise NotImplementedError()
-
-    def save(self):
-        raise NotImplementedError()
-
-
-class NRPRecordFiles(dict):
-    def __init__(self, record, *args, **kwargs):
-        self.record = record
-        super().__init__(*args, **kwargs)
-
-    def create(self, key, metadata):
-        md = self.record._client.post(
-            self.record.links["files"], json=[{"key": key, **metadata}]
-        )
-        self[key] = NRPFile(record=self.record, key=key, metadata=md)
-
-    def to_dict(self):
-        return [f.metadata for f in self.values()]
 
 
 class NRPRecord:
@@ -77,7 +35,7 @@ class NRPRecord:
             self,
             **{
                 metadata["key"]: NRPFile(
-                    record=self, key=metadata["key"], metadata=metadata
+                    record=self, key=metadata["key"], data=metadata
                 )
                 for metadata in (files or [])
             },
@@ -90,7 +48,7 @@ class NRPRecord:
 
     def to_dict(self):
         ret = {
-            "mid": f"{self._model}/{self._record_id}",
+            "mid": self.record_id,
             **self._data,
         }
         if self._files:
@@ -116,6 +74,13 @@ class NRPRecord:
     @property
     def links(self):
         return self._data["links"]
+
+    @property
+    def record_id(self):
+        if self.links.get('self') == self.links.get('draft'):
+            return f"draft/{self._model}/{self._record_id}"
+        else:
+            return f"{self._model}/{self._record_id}"
 
     def clear_data(self):
         for k in list(self._data.keys()):
@@ -242,7 +207,7 @@ def _fetch_by_path(client, api_path, add_files, add_requests) -> NRPRecord:
 
 
 def record_getter(
-    config: NRPConfig, record_id, include_files, include_requests, client=None
+    config: NRPConfig, record_id, include_files=False, include_requests=False, client=None
 ) -> NRPRecord:
     if is_doi(record_id):
         client_from_doi, api_path = resolve_record_doi(config, record_id)

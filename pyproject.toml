@@ -13,6 +13,7 @@ dependencies = [
     "httpx[brotli,http2]>=0.26.0",
     "tenacity>=8.2.3",
     "pyDOI>=0.2.1",
+    "deepmerge>=1.1.1"
 ]
 requires-python = ">=3.10"
 readme = "README.md"

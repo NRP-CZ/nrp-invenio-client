@@ -1,4 +1,5 @@
 import functools
+from typing import Iterator, Any, Generator
 
 import click
 
@@ -11,6 +12,9 @@ from .base import (
     with_repository,
 )
 from .output import print_output, print_output_list
+from .utils import extract_alias
+from ..config import NRPConfig
+from ..records import NRPRecord
 
 
 def search_decorator(f):
@@ -85,6 +89,7 @@ def list_records(**kwargs):
 
 def internal_search(
     *,
+    config: NRPConfig,
     client,
     output_format,
     models,
@@ -97,6 +102,11 @@ def internal_search(
     query,
     **kwargs,
 ):
+    query, save_to_alias = extract_alias(query)
+    if save_to_alias:
+        if not client.repository_config:
+            raise click.ClickException("A repository alias must be specified to save the results to an alias.")
+
     request = client.search_request(models)
 
     if page is not None:
@@ -112,16 +122,32 @@ def internal_search(
     if query is not None:
         request.query(query)
 
+    record_aliases = []
     if all_records:
+        def alias_saver(results: Generator[NRPRecord, Any, None]):
+            for res in results:
+                if save_to_alias:
+                    record_aliases.append(res.record_id)
+                yield res.to_dict()
+
         with request.scan() as results:
-            print_output_list((x.to_dict() for x in results), output_format or "yaml")
+            print_output_list(alias_saver(results), output_format or "yaml")
     else:
         r = request.execute()
+        results = list(r)
         print_output(
             {
-                "hits": list(rec.to_dict() for rec in r),
+                "hits": list(rec.to_dict() for rec in results),
                 "total": r.total,
                 "links": r.links,
             },
             output_format or "yaml",
         )
+        if save_to_alias:
+            record_aliases.extend(rec.record_id for rec in results)
+
+    if save_to_alias:
+        client.repository_config.record_aliases[save_to_alias] = record_aliases
+    config.save()
+
+

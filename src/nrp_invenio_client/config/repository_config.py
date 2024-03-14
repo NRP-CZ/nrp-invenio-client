@@ -15,3 +15,4 @@ class RepositoryConfig:
     verify: bool | str = True
     retry_count: int = 10
     retry_interval: int = 10
+    record_aliases: typing.Dict[str, typing.List[str] | str] = dataclasses.field(default_factory=dict)
