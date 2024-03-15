@@ -7,12 +7,6 @@ from deepmerge import always_merger
 
 from nrp_invenio_client import NRPInvenioClient
 from nrp_invenio_client.cli.base import (
-    delete_group,
-    download_group,
-    list_group,
-    replace_group,
-    update_group,
-    upload_group,
     with_config,
     with_output_format,
     with_repository,
@@ -24,7 +18,6 @@ from nrp_invenio_client.records import record_getter
 from nrp_invenio_client.utils import read_input_file
 
 
-@upload_group.command(name="file")
 @click.argument("record_id", required=True)
 @click.argument("filename", required=True)
 @click.argument("metadata", required=False)
@@ -84,7 +77,6 @@ def _resolve_record_id(client, record_id):
     return record_id
 
 
-@list_group.command(name="files")
 @click.argument("record_id", required=True)
 @with_output_format()
 @with_config()
@@ -99,13 +91,12 @@ def list_files(
     print_output_list(data, output_format or "yaml")
 
 
-@download_group.command(name="file")
 @click.argument("record_id", required=True)
 @click.argument("filenames", required=True, nargs=-1)
 @click.option("-o", "--output", help="Output file", default="{key}")
 @with_config()
 @with_repository()
-def list_files(
+def download_file(
     config: NRPConfig,
     client: NRPInvenioClient,
     *,
@@ -143,7 +134,6 @@ def list_files(
                     shutil.copyfileobj(s, f)
 
 
-@update_group.command(name="file")
 @click.argument("record_id", required=True)
 @click.argument("key", required=True)
 @click.argument("metadata", required=False)
@@ -187,7 +177,6 @@ def update_file_metadata(
     print_output(f.data, output_format or "yaml")
 
 
-@replace_group.command(name="file")
 @click.argument("record_id", required=True)
 @click.argument("key", required=True)
 @click.argument("filename", required=True)
@@ -221,7 +210,6 @@ def replace_file(
     print_output(f.data, output_format or "yaml")
 
 
-@delete_group.command(name="file")
 @click.argument("record_id", required=True)
 @click.argument("key", required=True)
 @with_config()

@@ -7,17 +7,12 @@ from nrp_invenio_client.config import NRPConfig
 from nrp_invenio_client.config.repository_config import RepositoryConfig
 
 from .base import (
-    add_group,
-    list_group,
-    remove_group,
-    select_group,
     with_config,
     with_output_format,
 )
 from .output import print_output
 
 
-@list_group.command(name="aliases")
 @with_output_format()
 @with_config()
 def list_aliases(config: NRPConfig, output_format):
@@ -37,7 +32,6 @@ def list_aliases(config: NRPConfig, output_format):
     print_output(data, output_format)
 
 
-@add_group.command(name="alias")
 @click.argument("servername")
 @click.argument("alias", required=False)
 @click.option(
@@ -113,10 +107,9 @@ def add_alias(config: NRPConfig, alias, servername, default, token, skip_token, 
     config.save()
 
 
-@select_group.command(name="alias")
 @click.argument("alias")
 @with_config()
-def select_repository(config, alias):
+def select_alias(config, alias):
     """
     Select a default repository
     """
@@ -133,7 +126,6 @@ def select_repository(config, alias):
     click.secho(f"Repository {alias} selected", fg="green")
 
 
-@remove_group.command(name="alias")
 @click.argument("alias")
 @with_config()
 def remove_alias(config, alias):

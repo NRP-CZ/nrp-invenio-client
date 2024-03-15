@@ -7,8 +7,6 @@ from ..config import NRPConfig
 from ..records import NRPRecord
 from .base import (
     arg_split,
-    list_group,
-    search_group,
     with_config,
     with_output_format,
     with_repository,
@@ -65,7 +63,6 @@ def search_decorator(f):
     return wrapper
 
 
-@search_group.command(name="records")
 @search_decorator
 def search_records(**kwargs):
     """
@@ -76,7 +73,6 @@ def search_records(**kwargs):
     internal_search(**kwargs)
 
 
-@list_group.command(name="records")
 @search_decorator
 def list_records(**kwargs):
     """

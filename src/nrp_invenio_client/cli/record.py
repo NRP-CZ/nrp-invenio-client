@@ -5,16 +5,11 @@ from deepmerge import always_merger
 
 from nrp_invenio_client import NRPInvenioClient
 from nrp_invenio_client.cli.base import (
-    create_group,
-    delete_group,
-    get_group,
     handle_http_exceptions,
-    publish_group,
-    update_group,
     with_config,
     with_input_format,
     with_output_format,
-    with_repository, edit_group,
+    with_repository
 )
 from nrp_invenio_client.cli.output import print_dict_output, print_output
 from nrp_invenio_client.cli.utils import format_filename
@@ -23,7 +18,6 @@ from nrp_invenio_client.records import record_getter
 from nrp_invenio_client.utils import read_input_file
 
 
-@get_group.command(name="record")
 @click.option("-o", "--output-file", help="Output file, might use placeholders")
 @click.option(
     "--files/--no-files",
@@ -101,7 +95,6 @@ def save_record_to_output_file(rec, output_file, output_format):
         print_dict_output(data, output_format, file=f)
 
 
-@create_group.command(name="record")
 @click.argument("model")
 @click.argument("data")
 @click.argument("save_to_alias", required=False)
@@ -129,7 +122,6 @@ def create_record(
         config.save()
 
 
-@update_group.command(name="record")
 @click.argument("record_id", required=True)
 @click.argument("data", required=True)
 @click.option(
@@ -169,7 +161,6 @@ def update_record(
     print_output(rec.to_dict(), input_format or "yaml")
 
 
-@delete_group.command(name="record")
 @click.argument("record_id", required=True)
 @with_config()
 @with_repository()
@@ -187,7 +178,6 @@ def delete_record(config: NRPConfig, client: NRPInvenioClient, *, record_id, **k
     print_output(response, "yaml")
 
 
-@publish_group.command(name="record")
 @click.argument("record_id", required=True)
 @click.argument("version", required=False)
 @with_config()
@@ -214,13 +204,12 @@ def publish_record(
     print_output(published_rec.to_dict(), output_format or "yaml")
 
 
-@edit_group.command(name="record")
 @click.argument("record_id", required=True)
 @with_config()
 @with_repository()
 @with_output_format()
 @handle_http_exceptions()
-def publish_record(
+def edit_record(
     config: NRPConfig, client: NRPInvenioClient, *, record_id, output_format, **kwargs
 ):
     variable = None
