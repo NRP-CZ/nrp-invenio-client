@@ -1,7 +1,5 @@
 import re
 
-from nrp_invenio_client.files import NRPFile
-
 
 def extract_alias(query):
     save_to_alias = [q for q in query if q.startswith("@")]
@@ -18,10 +16,10 @@ def format_filename(fmt, f: dict):
     def sanitize(x):
         x = str(x)
         ret = x
-        ret = ret.replace('../', '')
-        ret = ret.replace('./', '')
-        ret = re.sub('^[/.]+', '', ret)
-        ret = re.sub('[/.]+$', '', ret)
+        ret = ret.replace("../", "")
+        ret = ret.replace("./", "")
+        ret = re.sub("^[/.]+", "", ret)
+        ret = re.sub("[/.]+$", "", ret)
         return ret
 
     replacements = {k: sanitize(v) for k, v in f.items()}

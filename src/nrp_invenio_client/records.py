@@ -34,7 +34,6 @@ class NRPRecord:
         record_id: typing.Optional[str] = None,
         data: typing.Optional[dict] = None,
         files: typing.Optional[dict] = None,
-        request_types: typing.Optional[dict] = None,
         requests: typing.Optional[dict] = None,
     ):
         self._client = client
@@ -50,7 +49,9 @@ class NRPRecord:
                 for metadata in (files or [])
             },
         )
-        self._requests = NRPRecordRequests(request_types, requests)
+        self._requests = NRPRecordRequests(
+            self, self._data.get("request_types", []), requests or []
+        )
 
     @property
     def data(self):
@@ -59,17 +60,19 @@ class NRPRecord:
         """
         return self._data
 
-    def to_dict(self):
+    def to_dict(self, files=True, requests=True, mid=True):
         """
         Returns json representation of the record
         """
         ret = {
-            "mid": self.record_id,
             **self._data,
         }
-        if self._files:
+        if mid:
+            ret["mid"] = self.record_id
+
+        if files and self._files:
             ret["files"] = self._files.to_dict()
-        if self._requests:
+        if requests and self._requests:
             ret["requests"] = self._requests.to_dict()
         return ret
 
@@ -127,7 +130,7 @@ class NRPRecord:
         """
         ret = self._client.put(
             self.links["self"],
-            data=self.to_dict(),
+            data=self.to_dict(files=False, requests=False, mid=False),
             headers={
                 "Content-Type": "application/json",
                 "If-Match": str(self._data["revision_id"]),
@@ -141,19 +144,41 @@ class NRPRecord:
         """
         return self._client.delete(self.links["self"], headers={})
 
-    def publish(self):
+    def publish(self, version=None):
         """
-        Publishes a draft record
+        Publishes a draft record and updates self to contain the published record
         :return: The published record
         """
-        raise NotImplementedError()
+        if version is not None:
+            # TODO: check that the version has not been used yet
+            self._data["version"] = version
+            self.save()
+        ret = self._client.post(self.links["publish"], None)
+
+        return NRPRecord(
+            client=self._client,
+            model=self._model,
+            record_id=ret["id"],
+            data=ret,
+        )
 
     def edit(self):
         """
         Edits a published record - creates a draft copy and returns that
         :return: The draft record
         """
-        raise NotImplementedError()
+        ret = self._client.post(self.links["versions"], None)
+
+        rec = NRPRecord(
+            client=self._client,
+            model=self._model,
+            record_id=ret["id"],
+            data=ret,
+        )
+        # copy files from the previous version
+        # TODO: do not have a link for that yet
+        return rec
+
 
     def __str__(self):
         return f"NRPRecord[{self._model}/{self._record_id}]"
