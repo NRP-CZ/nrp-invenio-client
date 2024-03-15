@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import click
 from deepmerge import always_merger
 
@@ -12,7 +14,8 @@ from nrp_invenio_client.cli.base import (
     with_output_format,
     with_repository,
 )
-from nrp_invenio_client.cli.output import print_output
+from nrp_invenio_client.cli.output import print_output, print_dict_output
+from nrp_invenio_client.cli.utils import format_filename
 from nrp_invenio_client.config import NRPConfig
 from nrp_invenio_client.records import record_getter
 from nrp_invenio_client.utils import read_input_file
@@ -30,7 +33,6 @@ from nrp_invenio_client.utils import read_input_file
     "include_requests",
     help="Add a list of requests associated with the record to the output",
 )
-@click.option("--overwrite/--no-overwrite", help="Overwrite the file")
 @click.argument("records_ids", nargs=-1, required=True)
 @with_config()
 @with_output_format()
@@ -43,7 +45,6 @@ def get_record(
     output_file,
     include_files,
     include_requests,
-    overwrite,
     output_format,
     **kwargs,
 ):
@@ -73,11 +74,28 @@ def get_record(
             rec = record_getter(
                 config, record_id, include_files, include_requests, client=client
             )
-            # TODO: store to file
-            print_output(rec.to_dict(), output_format or "yaml")
+            if output_file:
+                save_record_to_output_file(rec, output_file, output_format)
+            else:
+                print_output(rec.to_dict(), output_format or "yaml")
         except ValueError as e:
             click.secho(str(e), fg="red")
             raise click.Abort()
+
+
+def save_record_to_output_file(rec, output_file, output_format):
+    data = rec.to_dict()
+    output_file = format_filename(output_file, data)
+    Path(output_file).parent.mkdir(parents=True, exist_ok=True)
+    with open(output_file, "w") as f:
+        if not output_format:
+            if output_file.endswith(".yaml"):
+                output_format = "yaml"
+            elif output_file.endswith(".json"):
+                output_format = "json"
+            else:
+                output_format = "json"
+        print_dict_output(data, output_format, file=f)
 
 
 @create_group.command(name="record")
