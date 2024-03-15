@@ -1,4 +1,5 @@
 import json
+import sys
 from typing import Any, Dict, Generator, Iterable, List
 
 import yaml
@@ -35,20 +36,21 @@ def print_list_output(
 
 
 def print_dict_output(
-    data: Dict, output_format: str = "table", order: Dict[str, int] = None
+    data: Dict, output_format: str = "table", order: Dict[str, int] = None,
+        file=sys.stdout
 ):
     if not output_format:
         output_format = "table"
     if output_format == "json":
-        print(json.dumps(sorted_data(data), indent=4))
+        print(json.dumps(sorted_data(data), indent=4), file=file)
     elif output_format == "yaml":
-        print(yaml.dump(sorted_data(data), sort_keys=False))
+        print(yaml.dump(sorted_data(data), sort_keys=False), file=file)
     elif output_format == "table":
         formatted_table = format_dict_to_table(data, order)
-        print(formatted_table)
+        print(formatted_table, file=file)
     elif output_format == "long":
         formatted_table = format_dict_to_long_table(data, order)
-        print(formatted_table)
+        print(formatted_table, file=file)
     else:
         raise ValueError(f"Unknown output format: {output_format}")
 

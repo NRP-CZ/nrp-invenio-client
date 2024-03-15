@@ -1,4 +1,3 @@
-import re
 import shutil
 import sys
 from pathlib import Path
@@ -19,8 +18,8 @@ from nrp_invenio_client.cli.base import (
     with_repository,
 )
 from nrp_invenio_client.cli.output import print_output, print_output_list
+from nrp_invenio_client.cli.utils import format_filename
 from nrp_invenio_client.config import NRPConfig
-from nrp_invenio_client.files import NRPFile
 from nrp_invenio_client.records import record_getter
 from nrp_invenio_client.utils import read_input_file
 
@@ -123,10 +122,10 @@ def list_files(
     for filename in filenames:
         if filename == "*":
             for file in rec.files.values():
-                transformed_filenames[file.key] = format_filename(output, file)
+                transformed_filenames[file.key] = format_filename(output, file.to_dict())
         else:
             file = rec.files.get(filename)
-            transformed_filenames[file.key] = format_filename(output, file)
+            transformed_filenames[file.key] = format_filename(output, file.to_dict())
 
     for k, v in transformed_filenames.items():
         file = rec.files.get(k)
@@ -140,19 +139,6 @@ def list_files(
             else:
                 with open(v, "wb") as f:
                     shutil.copyfileobj(s, f)
-
-
-def format_filename(fmt, f: NRPFile):
-    def sanitize(x):
-        x = str(x)
-        ret = x.replace("/", "_").replace("\\", "_")
-        return re.sub(r"^[./\\]+", "", ret)
-
-    replacements = {k: sanitize(v) for k, v in f.metadata.items()}
-    for k, v in f.metadata.get("metadata", {}).items():
-        replacements[k] = sanitize(v)
-
-    return fmt.format(**replacements)
 
 
 @update_group.command(name="file")
