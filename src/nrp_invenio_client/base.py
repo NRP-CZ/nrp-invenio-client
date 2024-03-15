@@ -24,7 +24,6 @@ from nrp_invenio_client.errors import (
 from nrp_invenio_client.info import NRPInfoApi
 from nrp_invenio_client.records import NRPRecordsApi
 from nrp_invenio_client.search import NRPSearchRequest, NRPSearchResponse
-from nrp_invenio_client.tokens import NRPTokensApi
 
 JSON: TypeAlias = dict[str, "JSON"] | list["JSON"] | str | int | float | bool | None
 
@@ -128,7 +127,7 @@ class NRPInvenioClient:
                     repository_config.retry_interval,
                 )
             ),
-            repository_config = repository_config
+            repository_config=repository_config,
         )
 
     @property
@@ -145,10 +144,6 @@ class NRPInvenioClient:
     @cached_property
     def records(self) -> NRPRecordsApi:
         return NRPRecordsApi(self)
-
-    @cached_property
-    def tokens(self) -> NRPTokensApi:
-        return NRPTokensApi(self)
 
     def search_request(
         self,
@@ -312,6 +307,7 @@ class NRPInvenioClient:
             raise
         except:
             import traceback
+
             traceback.print_exc()
             raise
 

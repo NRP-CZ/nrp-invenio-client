@@ -1,21 +1,22 @@
-
 import click
+from deepmerge import always_merger
 
 from nrp_invenio_client import NRPInvenioClient
 from nrp_invenio_client.cli.base import (
     create_group,
+    delete_group,
     get_group,
+    update_group,
     with_config,
     with_input_format,
     with_output_format,
-    with_repository, update_group, delete_group,
+    with_repository,
 )
 from nrp_invenio_client.cli.output import print_output
 from nrp_invenio_client.config import NRPConfig
 from nrp_invenio_client.records import record_getter
 from nrp_invenio_client.utils import read_input_file
 
-from deepmerge import always_merger
 
 @get_group.command(name="record")
 @click.option("-o", "--output-file", help="Output file, might use placeholders")
@@ -87,7 +88,14 @@ def get_record(
 @with_input_format()
 @with_repository()
 def create_record(
-    config: NRPConfig, client: NRPInvenioClient, *, model, data, input_format, save_to_alias, **kwargs
+    config: NRPConfig,
+    client: NRPInvenioClient,
+    *,
+    model,
+    data,
+    input_format,
+    save_to_alias,
+    **kwargs,
 ):
 
     data = read_input_file(data, input_format)
@@ -102,22 +110,33 @@ def create_record(
 @update_group.command(name="record")
 @click.argument("record_id", required=True)
 @click.argument("data", required=True)
-@click.option("--replace", is_flag=True, help="Do not merge in the provided data, replace the record")
+@click.option(
+    "--replace",
+    is_flag=True,
+    help="Do not merge in the provided data, replace the record",
+)
 @with_config()
 @with_input_format()
 @with_repository()
 def update_record(
-    config: NRPConfig, client: NRPInvenioClient, *, record_id, data, input_format, replace, **kwargs
+    config: NRPConfig,
+    client: NRPInvenioClient,
+    *,
+    record_id,
+    data,
+    input_format,
+    replace,
+    **kwargs,
 ):
     data = read_input_file(data, input_format)
-    if record_id.startswith('@'):
+    if record_id.startswith("@"):
         record_id = client.repository_config.record_aliases[record_id]
         if isinstance(record_id, list):
-            raise ValueError(f"Alias points to multiple records '{record_id}', please specify the record id directly")
+            raise ValueError(
+                f"Alias points to multiple records '{record_id}', please specify the record id directly"
+            )
 
-    rec = record_getter(
-        config, record_id, False, False, client=client
-    )
+    rec = record_getter(config, record_id, False, False, client=client)
     if replace:
         rec.clear_data()
 
@@ -126,20 +145,19 @@ def update_record(
 
     print_output(rec.to_dict(), input_format or "yaml")
 
+
 @delete_group.command(name="record")
 @click.argument("record_id", required=True)
 @with_config()
 @with_repository()
-def delete_record(
-    config: NRPConfig, client: NRPInvenioClient, *, record_id, **kwargs
-):
-    if record_id.startswith('@'):
+def delete_record(config: NRPConfig, client: NRPInvenioClient, *, record_id, **kwargs):
+    if record_id.startswith("@"):
         record_id = client.repository_config.record_aliases[record_id]
         if isinstance(record_id, list):
-            raise ValueError(f"Alias points to multiple records '{record_id}', please specify the record id directly")
+            raise ValueError(
+                f"Alias points to multiple records '{record_id}', please specify the record id directly"
+            )
 
-    rec = record_getter(
-        config, record_id, False, False, client=client
-    )
+    rec = record_getter(config, record_id, False, False, client=client)
     response = rec.delete()
     print_output(response, "yaml")
