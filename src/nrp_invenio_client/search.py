@@ -15,6 +15,11 @@ class UrlSelector(Enum):
 
 
 class NRPSearchRequest:
+    """
+    Search request builder. It allows to build a search query and execute it.
+    Do not instantiate this class directly, use `NRPInvenioClient.search` method instead.
+    """
+
     def __init__(self, api: "NRPInvenioClient", models=None):
         self._api = api
         self._models = models
@@ -22,7 +27,10 @@ class NRPSearchRequest:
         self._params = {}
         self._url_selector: UrlSelector = UrlSelector.PUBLISHED
 
-    def execute(self):
+    def execute(self) -> "NRPSearchResponse":
+        """
+        Executes the search query and returns the response.
+        """
         if self._query:
             if isinstance(self._query, str):
                 p = {"q": self._query, **self._params}
@@ -38,9 +46,23 @@ class NRPSearchRequest:
         # TODO: json query with POST method (if the query is too long)
 
     def scan(self):
+        """
+        Executes the search query in the scan mode, allowing to return more
+        than 10000 records. The result of this call must be used as a context manager,
+        for example:
+
+        query = ...
+        with query.scan() as results:
+            for record in results:
+                ...
+        """
         return NRPScanResponse(self, self._get_path(method="scan"), self.models)
 
     def page(self, page: int):
+        """
+        Fetch the specified page of results.
+        :param page:    page number, starting with 1
+        """
         if page:
             self._params["page"] = page
         else:
@@ -48,6 +70,10 @@ class NRPSearchRequest:
         return self
 
     def size(self, size: int):
+        """
+        The fetched pages will have this number of records.
+        :param size:    number of records per page
+        """
         if size:
             self._params["size"] = size
         else:
@@ -55,6 +81,11 @@ class NRPSearchRequest:
         return self
 
     def order_by(self, *sort: str):
+        """
+        Sort the results by the specified fields.
+
+        :param sort:    fields to sort by. A field can have a '+/-' prefix to specify the sort order.
+        """
         if len(sort) == 0:
             self._params.pop("sort", None)
             return self
@@ -62,19 +93,31 @@ class NRPSearchRequest:
         return self
 
     def published(self):
+        """
+        Return only published records
+        """
         self._url_selector = UrlSelector.PUBLISHED
         return self
 
     def drafts(self):
+        """
+        Return only draft records
+        """
         self._url_selector = UrlSelector.DRAFTS
         return self
 
     def query(self, query):
+        """
+        Set the search query. The query can be either a SOLR/Opensearch query string or a JSON query.
+        """
         self._query = query
         return self
 
     # TODO: paths here are not correct, should be present inside the info endpoint and not created here
     def _get_path(self, method="search"):
+        """
+        Internal method to get the search path
+        """
         suffix = "" if method == "search" else "/_scan"
         if len(self._models) == 1:
             model_info = self._api.info.get_model(self._models[0])
@@ -92,6 +135,9 @@ class NRPSearchRequest:
 
     @property
     def models(self):
+        """
+        Models that will be searched within the query
+        """
         if self._models:
             return [x for x in self._api.info.models if x.name in self._models]
         else:
@@ -99,17 +145,29 @@ class NRPSearchRequest:
 
 
 class NRPSearchBaseResponse:
+    """
+    Base class for search/scan responses
+    """
+
     def __init__(self, api, models: typing.List[NRPModelInfo]):
         self._api = api
         self._models = models
 
 
 class NRPSearchResponse(NRPSearchBaseResponse):
+    """
+    Search response. It is an iterable of NRPRecord objects.
+    This class is not intended to be instantiated directly, use `NRPSearchRequest.execute` method instead.
+    """
+
     def __init__(self, api, raw_response, models):
         super().__init__(api, models)
         self._raw_response = raw_response
 
     def __iter__(self) -> typing.Iterator[NRPRecord]:
+        """
+        Iterate over the records
+        """
         for hit_data in self._raw_response["hits"]["hits"]:
             (model, record_id) = get_mid(self._models, hit_data)
             yield NRPRecord(
@@ -118,10 +176,16 @@ class NRPSearchResponse(NRPSearchBaseResponse):
 
     @property
     def links(self):
+        """
+        Return the links section of the response, such as `next` or `prev` page.
+        """
         return self._raw_response["links"]
 
     @property
     def total(self):
+        """
+        Total number of found records
+        """
         total = self._raw_response["hits"]["total"]
         if isinstance(total, int):
             return total
@@ -131,6 +195,14 @@ class NRPSearchResponse(NRPSearchBaseResponse):
 
 
 class NRPScanResponse(NRPSearchBaseResponse):
+    """
+    Scan response. It is an iterable of NRPRecord objects but has to be used
+    as a context manager as it needs to be closed after the iteration.
+
+    Unlike search response, it does not return the total number of records
+    nor pagination links.
+    """
+
     def __init__(self, api, url, models):
         super().__init__(api, models)
         self._url = url
@@ -145,6 +217,9 @@ class NRPScanResponse(NRPSearchBaseResponse):
         self._api.delete(self._url)
 
     def __iter__(self) -> typing.Iterator[NRPRecord]:
+        """
+        Iterate over the records
+        """
         while self._url:
             # get next batch of results
             response = self._api.get(self._url)

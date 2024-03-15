@@ -2,11 +2,13 @@ import json
 import re
 import sys
 from itertools import chain
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING, List, Tuple
 from urllib.parse import urlparse
 
 import pydoi
 import yaml
+
+from nrp_invenio_client.info import NRPModelInfo
 
 if TYPE_CHECKING:
     from nrp_invenio_client import NRPInvenioClient
@@ -17,6 +19,11 @@ doi_regex = re.compile(r"^\s*(10.(\d)+/(\S)+)\s*$")
 
 
 def is_doi(record_id):
+    """
+    Returns true if the record_id is a DOI
+    :param record_id:   any string
+    :return:        true if the record_id is a DOI
+    """
     if record_id.startswith("doi:"):
         return True
     if record_id.startswith("https://doi.org/"):
@@ -25,6 +32,11 @@ def is_doi(record_id):
 
 
 def is_url(record_id):
+    """
+    Returns true if the record_id is a URL
+    :param record_id:   any string
+    :return:            true if the record_id is a URL
+    """
     return record_id.startswith("http://") or record_id.startswith("https://")
 
 
@@ -41,7 +53,14 @@ def resolve_record_doi(config: "NRPConfig", doi) -> Tuple["NRPInvenioClient", st
     return resolve_repository_url(config, url)
 
 
-def resolve_repository_url(config: "NRPConfig", url):
+def resolve_repository_url(config: "NRPConfig", url) -> Tuple["NRPInvenioClient", str]:
+    """
+    Resolves the URL and return a pair of the client and the API path within the client
+
+    :param config:      config of all known repositories
+    :param url:         URL of the record
+    :return:            a pair of the client and the API path within the client
+    """
     from nrp_invenio_client import NRPInvenioClient
 
     # 1. check if the url matches a preconfigured repository and if so, return a pre-configured client (including token)
@@ -61,10 +80,22 @@ def resolve_repository_url(config: "NRPConfig", url):
 
 
 def is_mid(record_id):
+    """
+    Returns true if the record_id is a mid (model+id)
+    :param record_id:   any string
+    :return:            true if the record_id is a mid
+    """
     return "/" in record_id
 
 
-def get_mid(models, data):
+def get_mid(models: List[NRPModelInfo], data) -> Tuple[str, str]:
+    """
+    Get a (model+id) from the data
+
+    :param models:  list of known models
+    :param data:    data from the record
+    :return:        a pair (model, id)
+    """
     if "mid" in data:
         return data["mid"].split("/")
 
@@ -84,6 +115,13 @@ def get_mid(models, data):
 
 
 def read_input_file(filename, format):
+    """
+    Reads the input file
+
+    :param filename:    path on filesystem, '-' for stdin or json string beginning with '{' or '['
+    :param format:      format of the file, if None, it is guessed from the filename
+    :return:            content of the file parsed into a python json object (dict or list)
+    """
     filename = filename.strip()
     if filename and filename[0] in ("[", "{"):
         return json.loads(filename)

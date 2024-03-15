@@ -1,8 +1,10 @@
 import functools
-from typing import Iterator, Any, Generator
+from typing import Any, Generator
 
 import click
 
+from ..config import NRPConfig
+from ..records import NRPRecord
 from .base import (
     arg_split,
     list_group,
@@ -13,8 +15,6 @@ from .base import (
 )
 from .output import print_output, print_output_list
 from .utils import extract_alias
-from ..config import NRPConfig
-from ..records import NRPRecord
 
 
 def search_decorator(f):
@@ -105,7 +105,9 @@ def internal_search(
     query, save_to_alias = extract_alias(query)
     if save_to_alias:
         if not client.repository_config:
-            raise click.ClickException("A repository alias must be specified to save the results to an alias.")
+            raise click.ClickException(
+                "A repository alias must be specified to save the results to an alias."
+            )
 
     request = client.search_request(models)
 
@@ -124,6 +126,7 @@ def internal_search(
 
     record_aliases = []
     if all_records:
+
         def alias_saver(results: Generator[NRPRecord, Any, None]):
             for res in results:
                 if save_to_alias:
@@ -149,5 +152,3 @@ def internal_search(
     if save_to_alias:
         client.repository_config.record_aliases[save_to_alias] = record_aliases
     config.save()
-
-

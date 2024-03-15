@@ -202,11 +202,13 @@ def update_group():
     Update stuff in repository - run without arguments to see what can be updated.
     """
 
+
 @nrp_command.group(name="delete")
 def delete_group():
     """
     Delete stuff - run without arguments to see what can be removed.
     """
+
 
 @nrp_command.group(name="upload")
 def upload_group():
@@ -221,11 +223,13 @@ def set_group():
     Set stuff - run without arguments to see what can be set.
     """
 
+
 @nrp_command.group(name="download")
 def download_group():
     """
     Download stuff - run without arguments to see what can be downloaded.
     """
+
 
 @nrp_command.group(name="replace")
 def replace_group():

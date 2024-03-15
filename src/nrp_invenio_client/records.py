@@ -3,6 +3,7 @@ from urllib.parse import urljoin
 
 from nrp_invenio_client.config import NRPConfig
 from nrp_invenio_client.files import NRPFile, NRPRecordFiles
+from nrp_invenio_client.requests import NRPRecordRequests
 from nrp_invenio_client.utils import (
     get_mid,
     is_doi,
@@ -17,6 +18,14 @@ if typing.TYPE_CHECKING:
 
 
 class NRPRecord:
+    """
+    A record in the repository. It contains the metadata and links of the record
+    and might contain references to files and requests.
+
+    This class is not meant to be instantiated directly, use the `get/create` methods of
+    `NRPRecordsApi` instead.
+    """
+
     def __init__(
         self,
         *,
@@ -25,6 +34,7 @@ class NRPRecord:
         record_id: typing.Optional[str] = None,
         data: typing.Optional[dict] = None,
         files: typing.Optional[dict] = None,
+        request_types: typing.Optional[dict] = None,
         requests: typing.Optional[dict] = None,
     ):
         self._client = client
@@ -40,13 +50,19 @@ class NRPRecord:
                 for metadata in (files or [])
             },
         )
-        self._requests = requests
+        self._requests = NRPRecordRequests(request_types, requests)
 
     @property
     def data(self):
+        """
+        The whole data of the record (metadata, links, etc.)
+        """
         return self._data
 
     def to_dict(self):
+        """
+        Returns json representation of the record
+        """
         ret = {
             "mid": self.record_id,
             **self._data,
@@ -54,57 +70,89 @@ class NRPRecord:
         if self._files:
             ret["files"] = self._files.to_dict()
         if self._requests:
-            ret["requests"] = self._requests
+            ret["requests"] = self._requests.to_dict()
         return ret
 
     @property
     def metadata(self):
+        """
+        If the record has a metadata section, return that. Otherwise return the whole data.
+        """
         if not self.data:
             return {}
         return self._data.get("metadata", None) or self._data
 
     @property
-    def files(self):
+    def files(self) -> NRPRecordFiles:
+        """
+        Returns the files of the record
+        """
         return self._files
 
     @property
-    def requests(self):
+    def requests(self) -> NRPRecordRequests:
+        """
+        Returns the requests of the record
+        """
         return self._requests
 
     @property
     def links(self):
+        """
+        The content of links section, such as "self" or "draft"
+        """
         return self._data["links"]
 
     @property
     def record_id(self):
-        if self.links.get('self') == self.links.get('draft'):
+        """
+        Returns the id of the record in the form of "model/id" or "draft/model/id"
+        """
+        if self.links.get("self") == self.links.get("draft"):
             return f"draft/{self._model}/{self._record_id}"
         else:
             return f"{self._model}/{self._record_id}"
 
     def clear_data(self):
+        """
+        Removes all the data from the record except the links, parent, revision_id and id
+        """
         for k in list(self._data.keys()):
-            if k not in ('links', 'parent', 'revision_id', 'id'):
+            if k not in ("links", "parent", "revision_id", "id"):
                 del self._data[k]
 
     def save(self):
+        """
+        Saves the metadata of the record to the repository
+        """
         ret = self._client.put(
-            self.links["self"], data=self.to_dict(),
-            headers={"Content-Type": "application/json",
-                     "If-Match": str(self._data["revision_id"])}
+            self.links["self"],
+            data=self.to_dict(),
+            headers={
+                "Content-Type": "application/json",
+                "If-Match": str(self._data["revision_id"]),
+            },
         )
         self._data = ret
 
     def delete(self):
-        return self._client.delete(
-            self.links["self"],
-            headers={}
-        )
+        """
+        Deletes the record from the repository
+        """
+        return self._client.delete(self.links["self"], headers={})
 
     def publish(self):
+        """
+        Publishes a draft record
+        :return: The published record
+        """
         raise NotImplementedError()
 
     def edit(self):
+        """
+        Edits a published record - creates a draft copy and returns that
+        :return: The draft record
+        """
         raise NotImplementedError()
 
     def __str__(self):
@@ -112,6 +160,16 @@ class NRPRecord:
 
 
 class NRPRecordsApi:
+    """
+    API for working with records in the repository. Use the `records` property of `NRPInvenioClient` to get an instance.
+    Example:
+    ```
+        client = NRPInvenioClient.from_config()
+        records = client.records
+        record = records.get("model/id")
+    ```
+    """
+
     def __init__(self, api: "NRPInvenioClient"):
         self._api = api
 
@@ -127,6 +185,10 @@ class NRPRecordsApi:
         :param mid: Either a string mid "model/id within model" or a tuple (model, id within model).
                     For drafts, the mid is "draft/model/id within model" or tuple
                     ("draft", model, id within model)
+        :param include_files: If True, metadata the files of the record are fetched as well
+                              and included in the returned object. This adds another http request
+        :param include_requests: If True, the requests of the record are fetched as well included in the returned object.
+                                This adds another http request
         :return: The JSON data of the record
         """
         if isinstance(mid, str):
@@ -178,7 +240,14 @@ class NRPRecordsApi:
             requests=requests,
         )
 
-    def create(self, model, metadata):
+    def create(self, model, metadata) -> NRPRecord:
+        """
+        Creates a new record in the repository
+
+        :param model:       name of the model
+        :param metadata:    metadata of the record, including the 'metadata' element
+        :return:            The created record
+        """
         response = self._api.post(
             self._api.info.get_model(model).links["api"], data=metadata
         )
@@ -207,8 +276,22 @@ def _fetch_by_path(client, api_path, add_files, add_requests) -> NRPRecord:
 
 
 def record_getter(
-    config: NRPConfig, record_id, include_files=False, include_requests=False, client=None
+    config: NRPConfig,
+    record_id,
+    include_files=False,
+    include_requests=False,
+    client=None,
 ) -> NRPRecord:
+    """
+    Gets a record, regardless of the format of the record id
+
+    :param config:              The configuration of known repositories
+    :param record_id:           if of the record in any supported formats (mid, doi, url)
+    :param include_files:       If True, metadata the files of the record are fetched as well
+    :param include_requests:    If True, the requests of the record are fetched as well included in the returned object.
+    :param client:              Preferred client to use for fetching the record, if the id does not specify a concrete repository
+    :return:                    The record
+    """
     if is_doi(record_id):
         client_from_doi, api_path = resolve_record_doi(config, record_id)
         return _fetch_by_path(
