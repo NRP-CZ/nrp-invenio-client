@@ -22,7 +22,21 @@ license = {text = "MIT"}
 [tool.pdm.dev-dependencies]
 dev = [
     "nuitka>=2.0",
+    "pydoc-markdown>=4.8.2",
 ]
 
 [project.scripts]
 nrp-cmd = "nrp_invenio_client.cli:nrp_command"
+
+
+[[tool.pydoc-markdown.loaders]]
+type = "python"
+search_path = [ "src" ]
+
+[tool.pydoc-markdown.renderer]
+type = "mkdocs"
+
+[[tool.pydoc-markdown.renderer.pages]]
+title = "API Documentation"
+name = "index"
+contents = [ "nrp_invenio_client.*" ]

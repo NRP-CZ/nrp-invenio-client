@@ -1,3 +1,7 @@
+"""
+Commandline interface for the nrp-invenio-client.
+"""
+
 import nrp_invenio_client.cli.alias  # noqa
 import nrp_invenio_client.cli.describe  # noqa
 import nrp_invenio_client.cli.files  # noqa
