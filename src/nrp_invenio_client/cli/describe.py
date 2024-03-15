@@ -1,10 +1,9 @@
 import click
 
-from .base import describe_group, with_config, with_output_format, with_repository
+from .base import with_config, with_output_format, with_repository
 from .output import print_output, print_output_list
 
 
-@describe_group.command(name="repository")
 @with_output_format()
 @with_config()
 @with_repository()
@@ -17,7 +16,6 @@ def describe_repository(*, client, output_format, **kwargs):
     print_output(repository_info.to_dict(), output_format, order={"description": 10})
 
 
-@describe_group.command(name="models")
 @with_output_format()
 @with_config()
 @with_repository()

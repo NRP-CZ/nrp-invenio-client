@@ -2,10 +2,6 @@ import click
 
 from nrp_invenio_client import NRPInvenioClient
 from nrp_invenio_client.cli.base import (
-    get_group,
-    list_group,
-    remove_group,
-    set_group,
     with_config,
     with_output_format,
     with_repository,
@@ -14,7 +10,6 @@ from nrp_invenio_client.cli.output import print_output
 from nrp_invenio_client.config import NRPConfig
 
 
-@set_group.command(name="variable")
 @click.argument("variable")
 @click.argument("value")
 @with_config()
@@ -26,7 +21,6 @@ def set_variable(
     config.save()
 
 
-@get_group.command(name="variable")
 @click.argument("variable")
 @click.argument("value")
 @with_config()
@@ -37,7 +31,6 @@ def get_variable(
     print(client.repository_config.record_aliases[f"@{variable}"])
 
 
-@list_group.command(name="variables")
 @with_output_format()
 @with_config()
 @with_repository()
@@ -55,10 +48,9 @@ def list_variables(
         print_output(ret, output_format)
 
 
-@remove_group.command(name="variable")
 @click.argument("variable")
 @with_config()
 @with_repository()
-def delete_variable(config: NRPConfig, client: NRPInvenioClient, *, variable, **kwargs):
+def remove_variable(config: NRPConfig, client: NRPInvenioClient, *, variable, **kwargs):
     client.repository_config.record_aliases.pop(f"@{variable}", None)
     config.save()

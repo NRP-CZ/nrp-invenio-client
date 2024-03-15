@@ -2,13 +2,8 @@
 Commandline interface for the nrp-invenio-client.
 """
 
-import nrp_invenio_client.cli.alias  # noqa
-import nrp_invenio_client.cli.describe  # noqa
-import nrp_invenio_client.cli.files  # noqa
-import nrp_invenio_client.cli.record  # noqa
-import nrp_invenio_client.cli.search  # noqa
-import nrp_invenio_client.cli.set  # noqa
-
 from .base import nrp_command
+
+import nrp_invenio_client.cli.commands # noqa
 
 __all__ = ("nrp_command",)
