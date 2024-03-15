@@ -1,8 +1,11 @@
 import functools
+import sys
 from typing import List
 
 import click
+import httpx
 
+from nrp_invenio_client.cli.output import print_dict_output
 from nrp_invenio_client.config import NRPConfig
 
 
@@ -140,6 +143,38 @@ def with_repository():
     return decorator
 
 
+def handle_http_exceptions():
+    def decorator(f):
+        @functools.wraps(f)
+        def decorated(*args, **kwargs):
+            try:
+                return f(*args, **kwargs)
+            except httpx.HTTPStatusError as e:
+                response_text = e.response.text
+                response_content_type = e.response.headers.get("content-type", "")
+                if response_content_type == "application/json":
+                    response_text = e.response.json()
+                    print_dict_output(
+                        response_text,
+                        output_format=kwargs.get("output_format", "yaml"),
+                        file=sys.stderr,
+                    )
+                    sys.exit(1)
+                click.secho(
+                    f"HTTP Error: {response_content_type} {response_text}",
+                    fg="red",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            except Exception as e:
+                click.secho(str(e), fg="red", file=sys.stderr)
+                sys.exit(1)
+
+        return decorated
+
+    return decorator
+
+
 @nrp_command.group(name="add")
 def add_group():
     """
@@ -237,6 +272,18 @@ def replace_group():
     Replace stuff - run without arguments to see what can be replaced.
     """
 
+
+@nrp_command.group(name="publish")
+def publish_group():
+    """
+    Publish stuff - run without arguments to see what can be published.
+    """
+
+@nrp_command.group(name="edit")
+def edit_group():
+    """
+    Edit stuff - run without arguments to see what can be edited.
+    """
 
 def arg_split(ctx, param, value: str | List[str]):
     # split the value by comma and join into a single list

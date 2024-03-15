@@ -122,7 +122,9 @@ def list_files(
     for filename in filenames:
         if filename == "*":
             for file in rec.files.values():
-                transformed_filenames[file.key] = format_filename(output, file.to_dict())
+                transformed_filenames[file.key] = format_filename(
+                    output, file.to_dict()
+                )
         else:
             file = rec.files.get(filename)
             transformed_filenames[file.key] = format_filename(output, file.to_dict())

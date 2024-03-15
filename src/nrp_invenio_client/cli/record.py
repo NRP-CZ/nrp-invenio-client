@@ -8,13 +8,15 @@ from nrp_invenio_client.cli.base import (
     create_group,
     delete_group,
     get_group,
+    handle_http_exceptions,
+    publish_group,
     update_group,
     with_config,
     with_input_format,
     with_output_format,
-    with_repository,
+    with_repository, edit_group,
 )
-from nrp_invenio_client.cli.output import print_output, print_dict_output
+from nrp_invenio_client.cli.output import print_dict_output, print_output
 from nrp_invenio_client.cli.utils import format_filename
 from nrp_invenio_client.config import NRPConfig
 from nrp_invenio_client.records import record_getter
@@ -37,6 +39,7 @@ from nrp_invenio_client.utils import read_input_file
 @with_config()
 @with_output_format()
 @with_repository()
+@handle_http_exceptions()
 def get_record(
     config: NRPConfig,
     client: NRPInvenioClient,
@@ -105,6 +108,7 @@ def save_record_to_output_file(rec, output_file, output_format):
 @with_config()
 @with_input_format()
 @with_repository()
+@handle_http_exceptions()
 def create_record(
     config: NRPConfig,
     client: NRPInvenioClient,
@@ -136,6 +140,7 @@ def create_record(
 @with_config()
 @with_input_format()
 @with_repository()
+@handle_http_exceptions()
 def update_record(
     config: NRPConfig,
     client: NRPInvenioClient,
@@ -168,6 +173,7 @@ def update_record(
 @click.argument("record_id", required=True)
 @with_config()
 @with_repository()
+@handle_http_exceptions()
 def delete_record(config: NRPConfig, client: NRPInvenioClient, *, record_id, **kwargs):
     if record_id.startswith("@"):
         record_id = client.repository_config.record_aliases[record_id]
@@ -179,3 +185,56 @@ def delete_record(config: NRPConfig, client: NRPInvenioClient, *, record_id, **k
     rec = record_getter(config, record_id, False, False, client=client)
     response = rec.delete()
     print_output(response, "yaml")
+
+
+@publish_group.command(name="record")
+@click.argument("record_id", required=True)
+@click.argument("version", required=False)
+@with_config()
+@with_repository()
+@with_output_format()
+@handle_http_exceptions()
+def publish_record(
+    config: NRPConfig, client: NRPInvenioClient, *, record_id, version, output_format, **kwargs
+):
+    variable = None
+    if record_id.startswith("@"):
+        variable = record_id
+        record_id = client.repository_config.record_aliases[record_id]
+        if isinstance(record_id, list):
+            raise ValueError(
+                f"Alias points to multiple records '{record_id}', please specify the record id directly"
+            )
+
+    rec = record_getter(config, record_id, False, False, client=client)
+    published_rec = rec.publish(version=version)
+    if variable:
+        client.repository_config.record_aliases[variable] = published_rec.record_id
+        config.save()
+    print_output(published_rec.to_dict(), output_format or "yaml")
+
+
+@edit_group.command(name="record")
+@click.argument("record_id", required=True)
+@with_config()
+@with_repository()
+@with_output_format()
+@handle_http_exceptions()
+def publish_record(
+    config: NRPConfig, client: NRPInvenioClient, *, record_id, output_format, **kwargs
+):
+    variable = None
+    if record_id.startswith("@"):
+        variable = record_id
+        record_id = client.repository_config.record_aliases[record_id]
+        if isinstance(record_id, list):
+            raise ValueError(
+                f"Alias points to multiple records '{record_id}', please specify the record id directly"
+            )
+
+    rec = record_getter(config, record_id, False, False, client=client)
+    draft_rec = rec.edit()
+    if variable:
+        client.repository_config.record_aliases[variable] = draft_rec.record_id
+        config.save()
+    print_output(draft_rec.to_dict(), output_format or "yaml")
