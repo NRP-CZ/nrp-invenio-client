@@ -60,6 +60,10 @@ class NRPRecord:
         """
         return self._data
 
+    @property
+    def errors(self):
+        return self._data.get('errors', None)
+
     def to_dict(self, files=True, requests=True, mid=True):
         """
         Returns json representation of the record

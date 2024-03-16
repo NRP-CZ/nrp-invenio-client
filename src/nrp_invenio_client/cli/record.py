@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 import click
@@ -11,10 +12,10 @@ from nrp_invenio_client.cli.base import (
     with_output_format,
     with_repository
 )
-from nrp_invenio_client.cli.output import print_dict_output, print_output
+from nrp_invenio_client.cli.output import print_dict_output, print_output, print_output_list
 from nrp_invenio_client.cli.utils import format_filename
 from nrp_invenio_client.config import NRPConfig
-from nrp_invenio_client.records import record_getter
+from nrp_invenio_client.records import record_getter, NRPRecord
 from nrp_invenio_client.utils import read_input_file
 
 
@@ -80,7 +81,7 @@ def get_record(
             raise click.Abort()
 
 
-def save_record_to_output_file(rec, output_file, output_format):
+def save_record_to_output_file(rec, output_file, output_format, saved_data=None):
     data = rec.to_dict()
     output_file = format_filename(output_file, data)
     Path(output_file).parent.mkdir(parents=True, exist_ok=True)
@@ -92,7 +93,7 @@ def save_record_to_output_file(rec, output_file, output_format):
                 output_format = "json"
             else:
                 output_format = "json"
-        print_dict_output(data, output_format, file=f)
+        print_dict_output(saved_data or data, output_format, file=f)
 
 
 @click.argument("model")
@@ -159,6 +160,32 @@ def update_record(
     rec.save()
 
     print_output(rec.to_dict(), input_format or "yaml")
+
+@click.argument("record_id", required=True)
+@with_config()
+@with_repository()
+@with_output_format()
+@handle_http_exceptions()
+def validate_record(
+    config: NRPConfig,
+    client: NRPInvenioClient,
+    *,
+    record_id,
+    output_format,
+    **kwargs,
+):
+    if record_id.startswith("@"):
+        record_id = client.repository_config.record_aliases[record_id]
+        if isinstance(record_id, list):
+            raise ValueError(
+                f"Alias points to multiple records '{record_id}', please specify the record id directly"
+            )
+
+    rec = record_getter(config, record_id, False, False, client=client)
+    rec.save()
+    if rec.errors:
+        print_output_list(rec.errors, output_format or "table")
+        sys.exit(1)
 
 
 @click.argument("record_id", required=True)
