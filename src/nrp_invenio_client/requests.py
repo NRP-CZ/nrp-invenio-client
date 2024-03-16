@@ -95,7 +95,10 @@ class NRPRecordRequestType:
         """
         Convert to dict
         """
-        return {**self._request_type, "requests": [x.to_dict() for x in self._requests.values()]}
+        return {
+            **self._request_type,
+            "requests": [x.to_dict() for x in self._requests.values()],
+        }
 
 
 class NRPRecordRequest:
@@ -157,8 +160,19 @@ class NRPRecordRequest:
         self._change_state("submit", reason)
 
     def _change_state(self, action, reason=None):
+        if reason:
+            data = {"payload": {"content": reason}}
+        else:
+            data = None
+        if action not in self._request["links"]["actions"]:
+            available_actions = ", ".join(self._request["links"]["actions"].keys())
+            raise ValueError(
+                f"Action '{action}' not available for request {self.request_id}. "
+                f"Available actions: {available_actions}"
+            )
+
         ret = self._record._client.post(
-            self._request["links"]["actions"][action], data={"payload": reason or {}}
+            self._request["links"]["actions"][action], data=data
         )
         self._request = ret
 

@@ -1,11 +1,7 @@
 import click
 
 from nrp_invenio_client import NRPInvenioClient
-from nrp_invenio_client.cli.base import (
-    with_config,
-    with_output_format,
-    with_repository,
-)
+from nrp_invenio_client.cli.base import with_config, with_output_format, with_repository
 from nrp_invenio_client.cli.output import print_output
 from nrp_invenio_client.config import NRPConfig
 

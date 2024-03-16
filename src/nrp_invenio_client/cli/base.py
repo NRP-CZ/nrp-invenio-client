@@ -145,7 +145,7 @@ def with_repository():
 
 def handle_http_exceptions():
     def decorator(f):
-        f = click.option('--show-exceptions', is_flag=True, help="Show exceptions")(f)
+        f = click.option("--show-exceptions", is_flag=True, help="Show exceptions")(f)
 
         @functools.wraps(f)
         def decorated(*args, **kwargs):

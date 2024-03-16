@@ -5,12 +5,7 @@ import click
 
 from ..config import NRPConfig
 from ..records import NRPRecord
-from .base import (
-    arg_split,
-    with_config,
-    with_output_format,
-    with_repository,
-)
+from .base import arg_split, with_config, with_output_format, with_repository
 from .output import print_output, print_output_list
 from .utils import extract_alias
 

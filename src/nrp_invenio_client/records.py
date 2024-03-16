@@ -62,7 +62,7 @@ class NRPRecord:
 
     @property
     def errors(self):
-        return self._data.get('errors', None)
+        return self._data.get("errors", None)
 
     def to_dict(self, files=True, requests=True, mid=True):
         """
@@ -182,7 +182,6 @@ class NRPRecord:
         # copy files from the previous version
         # TODO: do not have a link for that yet
         return rec
-
 
     def __str__(self):
         return f"NRPRecord[{self._model}/{self._record_id}]"
