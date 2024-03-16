@@ -241,6 +241,56 @@ def cancel_request(
     print_output(request.to_dict(), output_format or "yaml")
 
 
+@click.argument("pid_or_request_id", required=True)
+@click.argument("request_id", required=False)
+@with_config()
+@with_output_format()
+@with_repository()
+@handle_http_exceptions()
+def accept_request(
+    config: NRPConfig,
+    client: NRPInvenioClient,
+    *,
+    pid_or_request_id,
+    request_id,
+    output_format,
+    **kwargs,
+):
+    """
+    Accept request
+    """
+    record, request = _get_request(client, config, pid_or_request_id, request_id)
+
+    request.accept()
+
+    print_output(request.to_dict(), output_format or "yaml")
+
+
+@click.argument("pid_or_request_id", required=True)
+@click.argument("request_id", required=False)
+@with_config()
+@with_output_format()
+@with_repository()
+@handle_http_exceptions()
+def decline_request(
+    config: NRPConfig,
+    client: NRPInvenioClient,
+    *,
+    pid_or_request_id,
+    request_id,
+    output_format,
+    **kwargs,
+):
+    """
+    Decline request
+    """
+    record, request = _get_request(client, config, pid_or_request_id, request_id)
+
+    request.decline()
+
+    print_output(request.to_dict(), output_format or "yaml")
+
+
 def _get_request(client, config, pid_or_request_id, request_id):
     if request_id:
         record_id = pid_or_request_id

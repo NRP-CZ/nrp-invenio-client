@@ -27,8 +27,10 @@ from nrp_invenio_client.cli.record import (
     validate_record,
 )
 from nrp_invenio_client.cli.requests import (
+    accept_request,
     cancel_request,
     create_request,
+    decline_request,
     get_request,
     list_requests,
     submit_request,
@@ -74,6 +76,8 @@ commands = [
     ("update", "request", update_request),
     ("submit", "request", submit_request),
     ("cancel", "request", cancel_request),
+    ("accept", "request", accept_request),
+    ("decline", "request", decline_request),
 ]
 
 
