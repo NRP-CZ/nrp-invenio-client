@@ -58,8 +58,8 @@ class NRPRecordRequestType:
         """
         return iter(self._requests.values())
 
-    def get(self, item_id):
-        return self._requests[item_id]
+    def get(self, item_id, default=None):
+        return self._requests.get(item_id, default)
 
     def submitted_requests(self):
         """
@@ -95,7 +95,7 @@ class NRPRecordRequestType:
         """
         Convert to dict
         """
-        return {**self._request_type, "requests": [x.to_dict() for x in self._requests]}
+        return {**self._request_type, "requests": [x.to_dict() for x in self._requests.values()]}
 
 
 class NRPRecordRequest:
@@ -175,7 +175,7 @@ class NRPRecordRequests:
             by_type[type_id] = (rt, [])
 
         for r in requests:
-            type_id = r["type_id"]
+            type_id = r["type"]
             if type_id not in by_type:
                 by_type[type_id] = ({"type_id": type_id, "links": {"actions": {}}}, [])
             by_type[type_id][1].append(r)
@@ -185,7 +185,7 @@ class NRPRecordRequests:
         }
 
     def __iter__(self):
-        return iter(self._requests)
+        return iter(self._requests.values())
 
     def __getitem__(self, item):
         return self._requests[item]

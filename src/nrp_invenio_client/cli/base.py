@@ -145,8 +145,11 @@ def with_repository():
 
 def handle_http_exceptions():
     def decorator(f):
+        f = click.option('--show-exceptions', is_flag=True, help="Show exceptions")(f)
+
         @functools.wraps(f)
         def decorated(*args, **kwargs):
+            show_exceptions = kwargs.pop("show_exceptions", False)
             try:
                 return f(*args, **kwargs)
             except httpx.HTTPStatusError as e:
@@ -167,6 +170,8 @@ def handle_http_exceptions():
                 )
                 sys.exit(1)
             except Exception as e:
+                if show_exceptions:
+                    raise
                 click.secho(str(e), fg="red", file=sys.stderr)
                 sys.exit(1)
 
