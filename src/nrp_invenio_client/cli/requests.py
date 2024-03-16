@@ -1,10 +1,16 @@
 import sys
 
 import click
+from deepmerge import always_merger
 
 from nrp_invenio_client import NRPInvenioClient
-from nrp_invenio_client.cli.base import with_config, with_output_format, with_repository, handle_http_exceptions, \
-    with_input_format
+from nrp_invenio_client.cli.base import (
+    handle_http_exceptions,
+    with_config,
+    with_input_format,
+    with_output_format,
+    with_repository,
+)
 from nrp_invenio_client.cli.output import print_output
 from nrp_invenio_client.cli.record import save_record_to_output_file
 from nrp_invenio_client.config import NRPConfig
@@ -39,12 +45,12 @@ def list_requests(
     if record_id.startswith("@"):
         record_id = client.repository_config.record_aliases[record_id]
 
-    rec = record_getter(
-        config, record_id, include_requests=True, client=client
-    )
+    rec = record_getter(config, record_id, include_requests=True, client=client)
 
     if output_file:
-        save_record_to_output_file(rec, output_file, output_format, saved_data = rec.requests.to_dict())
+        save_record_to_output_file(
+            rec, output_file, output_format, saved_data=rec.requests.to_dict()
+        )
     else:
         print_output(rec.requests.to_dict(), output_format or "yaml")
 
@@ -54,7 +60,7 @@ def list_requests(
 @click.argument("request_id", required=True)
 @click.argument("payload", required=False)
 @click.argument("variable", required=False)
-@click.option('--submit', is_flag=True, help="Submit the request for approval")
+@click.option("--submit", is_flag=True, help="Submit the request for approval")
 @with_config()
 @with_output_format()
 @with_input_format()
@@ -93,13 +99,13 @@ def create_request(
 
     payload_data = read_input_file(payload, input_format) if payload else {}
 
-    rec = record_getter(
-        config, record_id, include_requests=True, client=client
-    )
+    rec = record_getter(config, record_id, include_requests=True, client=client)
     request = rec.requests.create(request_id, metadata=payload_data, submit=submit)
 
     if variable:
-        client.repository_config.record_aliases[variable] = record_id + '/' + request.request_id
+        client.repository_config.record_aliases[variable] = (
+            record_id + "/" + request.request_id
+        )
         config.save()
 
     print_output(request.to_dict(), output_format or "yaml")
@@ -119,12 +125,123 @@ def get_request(
     pid_or_request_id,
     request_id,
     output_format,
+    output_file,
     **kwargs,
 ):
     """
-        Get request
+    Get request
     """
 
+    record, request = _get_request(client, config, pid_or_request_id, request_id)
+
+    if output_file:
+        save_record_to_output_file(
+            record, output_file, output_format, saved_data=request.to_dict()
+        )
+    else:
+        print_output(request.to_dict(), output_format or "yaml")
+
+
+@click.argument("pid_or_request_id", required=True)
+@click.argument("request_id", required=False)
+@click.argument("data", required=False)
+@click.option(
+    "--replace",
+    is_flag=True,
+    help="Do not merge in the provided data, replace the request payload",
+)
+@with_config()
+@with_input_format()
+@with_output_format()
+@with_repository()
+@handle_http_exceptions()
+def update_request(
+    config: NRPConfig,
+    client: NRPInvenioClient,
+    *,
+    pid_or_request_id,
+    request_id,
+    input_format,
+    output_format,
+    data,
+    replace,
+    **kwargs,
+):
+    """
+    Update request
+    """
+
+    if not data:
+        data = request_id
+        request_id = None
+    if not data:
+        click.echo("No data provided", err=True)
+        sys.exit(1)
+
+    record, request = _get_request(client, config, pid_or_request_id, request_id)
+
+    if replace:
+        request.payload.clear()
+
+    request.payload.update(
+        always_merger.merge(request.payload, read_input_file(data, input_format))
+    )
+    request.save()
+
+    print_output(request.to_dict(), output_format or "yaml")
+
+
+@click.argument("pid_or_request_id", required=True)
+@click.argument("request_id", required=False)
+@with_config()
+@with_output_format()
+@with_repository()
+@handle_http_exceptions()
+def submit_request(
+    config: NRPConfig,
+    client: NRPInvenioClient,
+    *,
+    pid_or_request_id,
+    request_id,
+    output_format,
+    **kwargs,
+):
+    """
+    Submit request
+    """
+    record, request = _get_request(client, config, pid_or_request_id, request_id)
+
+    request.submit()
+
+    print_output(request.to_dict(), output_format or "yaml")
+
+
+@click.argument("pid_or_request_id", required=True)
+@click.argument("request_id", required=False)
+@with_config()
+@with_output_format()
+@with_repository()
+@handle_http_exceptions()
+def cancel_request(
+    config: NRPConfig,
+    client: NRPInvenioClient,
+    *,
+    pid_or_request_id,
+    request_id,
+    output_format,
+    **kwargs,
+):
+    """
+    Submit request
+    """
+    record, request = _get_request(client, config, pid_or_request_id, request_id)
+
+    request.cancel()
+
+    print_output(request.to_dict(), output_format or "yaml")
+
+
+def _get_request(client, config, pid_or_request_id, request_id):
     if request_id:
         record_id = pid_or_request_id
         if record_id.startswith("@"):
@@ -135,17 +252,11 @@ def get_request(
             request_id = client.repository_config.record_aliases[request_id]
 
         # TODO: not efficient, rethink the API to get the request by id
-        record_id, request_id = request_id.rsplit('/', maxsplit=1)
-
-    rec = record_getter(
-        config, record_id, include_requests=True, client=client
-    )
+        record_id, request_id = request_id.rsplit("/", maxsplit=1)
+    rec = record_getter(config, record_id, include_requests=True, client=client)
     for rt in rec.requests:
         request = rt.get(request_id)
-        if request:
-            break
-    else:
-        click.echo(f"Request {request_id} not found", err=True)
-        sys.exit(1)
+        return rec, request
 
-    print_output(request.to_dict(), output_format or "yaml")
+    click.echo(f"Request {request_id} not found", err=True)
+    sys.exit(1)

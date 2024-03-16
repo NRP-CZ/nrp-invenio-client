@@ -33,7 +33,14 @@ def print_list_output(
     if output_format == "json":
         print(json.dumps(sorted_data(data), indent=4, ensure_ascii=False))
     elif output_format == "yaml":
-        print(yaml.dump(sorted_data(data), sort_keys=False, Dumper=NoAliasDumper, allow_unicode=True))
+        print(
+            yaml.dump(
+                sorted_data(data),
+                sort_keys=False,
+                Dumper=NoAliasDumper,
+                allow_unicode=True,
+            )
+        )
     elif output_format == "table":
         formatted_table = format_list_to_table(data, order)
         print(formatted_table)
@@ -53,7 +60,12 @@ def print_dict_output(
         print(json.dumps(sorted_data(data), indent=4, ensure_ascii=False), file=file)
     elif output_format == "yaml":
         print(
-            yaml.dump(sorted_data(data), sort_keys=False, Dumper=NoAliasDumper, allow_unicode=True),
+            yaml.dump(
+                sorted_data(data),
+                sort_keys=False,
+                Dumper=NoAliasDumper,
+                allow_unicode=True,
+            ),
             file=file,
         )
     elif output_format == "table":

@@ -10,12 +10,16 @@ from nrp_invenio_client.cli.base import (
     with_config,
     with_input_format,
     with_output_format,
-    with_repository
+    with_repository,
 )
-from nrp_invenio_client.cli.output import print_dict_output, print_output, print_output_list
+from nrp_invenio_client.cli.output import (
+    print_dict_output,
+    print_output,
+    print_output_list,
+)
 from nrp_invenio_client.cli.utils import format_filename
 from nrp_invenio_client.config import NRPConfig
-from nrp_invenio_client.records import record_getter, NRPRecord
+from nrp_invenio_client.records import record_getter
 from nrp_invenio_client.utils import read_input_file
 
 
@@ -161,6 +165,7 @@ def update_record(
 
     print_output(rec.to_dict(), input_format or "yaml")
 
+
 @click.argument("record_id", required=True)
 @with_config()
 @with_repository()
@@ -212,7 +217,13 @@ def delete_record(config: NRPConfig, client: NRPInvenioClient, *, record_id, **k
 @with_output_format()
 @handle_http_exceptions()
 def publish_record(
-    config: NRPConfig, client: NRPInvenioClient, *, record_id, version, output_format, **kwargs
+    config: NRPConfig,
+    client: NRPInvenioClient,
+    *,
+    record_id,
+    version,
+    output_format,
+    **kwargs,
 ):
     variable = None
     if record_id.startswith("@"):

@@ -6,10 +6,7 @@ import click
 from nrp_invenio_client.config import NRPConfig
 from nrp_invenio_client.config.repository_config import RepositoryConfig
 
-from .base import (
-    with_config,
-    with_output_format,
-)
+from .base import with_config, with_output_format
 from .output import print_output
 
 
