@@ -1,6 +1,6 @@
 [project]
 name = "nrp-invenio-client"
-version = "0.1.0"
+version = "0.2.0"
 description = "Python and commandline client for NRP Invenio API"
 authors = [
     {name = "Mirek Simek", email = "miroslav.simek@cesnet.cz"},
