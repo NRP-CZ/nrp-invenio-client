@@ -27,10 +27,10 @@ also create an anonymous connection to a repository.""",
 
     click.secho(
         """
-nrp-command add alias       - add a new alias
-nrp-command select alias    - select an alias as the default
-nrp-command remove alias    - remove an alias
-nrp-command list aliases    - list all aliases
+nrp-cmd add alias       - add a new alias
+nrp-cmd select alias    - select an alias as the default
+nrp-cmd remove alias    - remove an alias
+nrp-cmd list aliases    - list all aliases
     """,
         fg="green",
     )
@@ -44,8 +44,8 @@ Introspection commands:
 
     click.secho(
         """
-nrp-command describe repository  - show information about a repository
-nrp-command describe models      - show information about the models in a repository
+nrp-cmd describe repository  - show information about a repository
+nrp-cmd describe models      - show information about the models in a repository
     """,
         fg="green",
     )
@@ -59,9 +59,9 @@ Record CRUD commands:
 
     click.secho(
         """
-nrp-command search records       - search for records
-nrp-command get record           - 
-nrp-command describe models      - show information about the models in a repository
+nrp-cmd search records       - search for records
+nrp-cmd get record           - get specific record based on id
+nrp-cmd describe models      - show information about the models in a repository
     """,
         fg="green",
     )
