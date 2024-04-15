@@ -24,6 +24,9 @@ def set_variable(
 def get_variable(
     config: NRPConfig, client: NRPInvenioClient, *, variable, value, **kwargs
 ):
+    """
+    Print a variable value
+    """
     print(client.repository_config.record_aliases[f"@{variable}"])
 
 
