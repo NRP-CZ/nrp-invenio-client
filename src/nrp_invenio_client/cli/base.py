@@ -60,7 +60,7 @@ Record CRUD commands:
     click.secho(
         """
 nrp-cmd search records       - search for records
-nrp-cmd get record           - 
+nrp-cmd get record           - get a record from the repository, potentially with files
 nrp-cmd describe models      - show information about the models in a repository
     """,
         fg="green",
