@@ -1,0 +1,19 @@
+forks:
+  invenio-administration: https://github.com/oarepo/invenio-administration
+  invenio-communities: https://github.com/oarepo/invenio-communities
+  invenio-drafts-resources: https://github.com/oarepo/invenio-drafts-resources
+  invenio-oauthclient: https://github.com/oarepo/invenio-oauthclient
+  invenio-records-resources: https://github.com/oarepo/invenio-records-resources
+  invenio-requests: https://github.com/oarepo/invenio-requests
+  invenio-app-rdm: https://github.com/oarepo/invenio-app-rdm
+  invenio-rdm-records: https://github.com/oarepo/invenio-rdm-records
+models: []
+repository:
+  model_package: models
+  oarepo_version: 12
+  repository_human_name: Test repository for nrp-cmd
+  repository_package: repo
+  shared_package: common
+  ui_package: ui
+uis: []
+
