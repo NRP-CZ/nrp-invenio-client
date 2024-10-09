@@ -96,7 +96,7 @@ class Connection:
         session = requests.Session()
         session.auth = self.auth
         session.mount("https://", adapter)
-        session.verify = self._repository_config.tls_verify
+        session.verify = self._repository_config.verify_tls
 
         yield session
 

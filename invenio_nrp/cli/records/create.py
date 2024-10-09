@@ -57,7 +57,7 @@ async def create_record(
                                              workflow=workflow, files_enabled=not metadata_only)
 
     if variable:
-        set_variable(config, variable, record.links.self_)
+        set_variable(config, variable, str(record.links.self_))
 
     # upload files
     await upload_files_to_record(record, files)

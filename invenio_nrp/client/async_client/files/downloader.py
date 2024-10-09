@@ -300,7 +300,7 @@ class Downloader:
     block_size: int = 65536  # 64KB
     """Memory block size for downloading the file. The total memory will be around block_size * limiter.capacity"""
 
-    tls_verify: bool = True
+    verify_tls: bool = True
     """Whether to verify the TLS certificate"""
 
     retry_count: int = 5
@@ -397,7 +397,7 @@ class Downloader:
         Create a new session with the repository and configure it with the token.
         :return: A new http client
         """
-        connector = TCPConnector(verify_ssl=self.tls_verify)
+        connector = TCPConnector(verify_ssl=self.verify_tls)
 
         async with ClientSession(
             request_class=AuthenticatedClientRequest,

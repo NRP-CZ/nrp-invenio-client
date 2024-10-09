@@ -73,7 +73,7 @@ class Connection:
         :return: A new http client
         """
 
-        connector = TCPConnector(verify_ssl=self._repository_config.tls_verify)
+        connector = TCPConnector(verify_ssl=self._repository_config.verify_tls)
         async with ClientSession(
             request_class=AuthenticatedClientRequest,
             response_class=RepositoryResponse,

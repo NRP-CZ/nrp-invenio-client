@@ -30,6 +30,7 @@ from .repositories import (
     select_repository,
 )
 from .variables import get_variable, list_variables, remove_variable, set_variable
+from .files import list_files, download_files
 
 commands = [
     # verb centric
@@ -37,8 +38,10 @@ commands = [
     ("create", "record", create_record),
     ("describe", "repository", describe_repository),
     ("download", "record", download_record),
+    ("download", "files", download_files),
     ("get", "record", get_record),
     ("get", "variable", get_variable),
+    ("list", "files", list_files),
     ("list", "records", search_records),
     ("list", "repositories", list_repositories),
     ("list", "variables", list_variables),
@@ -50,9 +53,12 @@ commands = [
     ("set", "variable", set_variable),
     ("update", "record", update_record),
     # noun centric
+    ("files", "list", list_files),
+    ("files", "download", download_files),
     ("records", "create", create_record),
     ("records", "download", download_record),
     ("records", "get", get_record),
+    ("records", "list", search_records),
     ("records", "search", search_records),
     ("records", "scan", scan_records),
     ("records", "update", update_record),

@@ -66,32 +66,19 @@ async def get_record(
             expand,
         )
 
-
 async def get_single_record(
-    record_id,
-    console,
-    config,
-    repository,
-    model,
-    output,
-    output_format,
-    published,
-    draft,
-    expand,
+        record_id,
+        console,
+        config,
+        repository,
+        model,
+        output,
+        output_format,
+        published,
+        draft,
+        expand,
 ):
-    record_id, repository_config = get_repository_from_record_id(
-        record_id, config, repository
-    )
-
-    # set it temporarily to the config
-    config.add_repository(repository_config)
-
-    client = AsyncClient(config=config, alias=repository_config.alias)
-    records_api: RecordClient = (
-        client.published_records(model) if published else client.user_records(model)
-    )
-
-    record = await records_api.read_record(record_id=record_id, expand=expand)
+    record, record_id, repository_config = await read_record(record_id, repository, config, expand, model, published)
 
     output = create_output_file_name(
         output, record.id or record_id, record, output_format
@@ -101,10 +88,25 @@ async def get_single_record(
 
     with OutputWriter(output, output_format, console, format_record_table) as printer:
         printer.output(record)
-    return record, output
+
+    return record, output, repository_config
 
 
-def create_output_file_name(output_name: Path, record_id, record, output_format):
+async def read_record(record_id, repository, config, expand, model, published):
+    record_id, repository_config = get_repository_from_record_id(
+        record_id, config, repository
+    )
+    # set it temporarily to the config
+    config.add_repository(repository_config)
+    client = AsyncClient(config=config, alias=repository_config.alias)
+    records_api: RecordClient = (
+        client.published_records(model) if published else client.user_records(model)
+    )
+    record = await records_api.read_record(record_id=record_id, expand=expand)
+    return record, record_id, repository_config
+
+
+def create_output_file_name(output_name: Path, obj_id, obj, output_format, **kwargs):
     # output name can contain variables inside {}. If it does, we will replace them with the values
     # from the record
     # we need to make sure that the expanded output name does not contain illegal combinations,
@@ -116,7 +118,7 @@ def create_output_file_name(output_name: Path, record_id, record, output_format)
     is_absolute = output_name.is_absolute()
 
     transformed_parts = [
-        format_part(part, record_id, record, output_format) for part in output_parts
+        format_part(part, obj_id, obj, output_format, **kwargs) for part in output_parts
     ]
     transformed_parts = [part.replace("/", "") for part in transformed_parts]
     transformed_parts = [part.replace("\\", "") for part in transformed_parts]
@@ -131,12 +133,13 @@ def create_output_file_name(output_name: Path, record_id, record, output_format)
     return output_name
 
 
-def format_part(part, record_id, record, output_format: OutputFormat):
+def format_part(part, obj_id, obj, output_format: OutputFormat, **kwargs):
     if "{" in part and "}" in part:
         options = {
-            "id": record_id,
+            "id": obj_id,
             "ext": f".{output_format.value}" if output_format else "table",
-            **(record.model_dump(mode="json")),
+            **(obj.model_dump(mode="json")),
+            **kwargs
         }
         return part.format(**options)
     return part
@@ -165,7 +168,7 @@ def get_repository_from_record_id(record_id, config, repository):
 
     # try to head the record to get the id
     resp = requests.head(
-        str(record_id), allow_redirects=True, verify=repository_config.tls_verify
+        str(record_id), allow_redirects=True, verify=repository_config.verify_tls
     )
     resp.raise_for_status()
     api_url = resp.links.get("linkset", {}).get("url")

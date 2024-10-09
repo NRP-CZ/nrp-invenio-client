@@ -14,7 +14,7 @@ from typing_extensions import Annotated
 
 from invenio_nrp import Config
 from invenio_nrp.cli.base import OutputFormat, run_async
-from invenio_nrp.cli.records.get import get_single_record
+from invenio_nrp.cli.records.get import read_record, get_single_record
 from invenio_nrp.client.async_client.files.downloader import Downloader
 from invenio_nrp.client.async_client.files.sink.file import FileSink
 
@@ -84,7 +84,7 @@ async def download_single_record(
     if not output_format:
         output_format = OutputFormat.JSON
 
-    record, output = await get_single_record(
+    record, output, repository_config = await get_single_record(
         record_id,
         console,
         config,
@@ -98,6 +98,10 @@ async def download_single_record(
     )
 
     output_dir = output.parent
+
+    # TODO: better way of handling tls verification
+    if not repository_config.verify_tls:
+        downloader.verify_tls = False
 
     # 2. download record files
     files = await record.files().list()

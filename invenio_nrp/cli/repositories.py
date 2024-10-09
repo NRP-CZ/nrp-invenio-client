@@ -184,7 +184,7 @@ def dump_repo_configuration(repo):
         "alias": repo.alias,
         "url": str(repo.url),
         "token": "***" if repo.token else "anonymous",
-        "tls_verify": repo.tls_verify,
+        "tls_verify": repo.verify_tls,
         "retry_count": repo.retry_count,
         "retry_after_seconds": repo.retry_after_seconds,
         "info": repo.info.model_dump(),
@@ -222,7 +222,7 @@ def output_repository_info_table(config, console, repo):
         table.add_row("Name", repo.info.name)
     table.add_row("URL", str(repo.url))
     table.add_row("Token", "***" if repo.token else "anonymous")
-    table.add_row("TLS Verify", "✓" if repo.tls_verify else "[red]skip[/red]")
+    table.add_row("TLS Verify", "✓" if repo.verify_tls else "[red]skip[/red]")
     table.add_row("Retry Count", str(repo.retry_count))
     table.add_row("Retry After Seconds", str(repo.retry_after_seconds))
     table.add_row("Default", "✓" if repo == config.default_repository else "")

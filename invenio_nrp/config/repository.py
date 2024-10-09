@@ -31,7 +31,7 @@ class RepositoryConfig(BaseModel):
     token: Optional[str] = None
     """Bearer token"""
 
-    tls_verify: bool = False
+    verify_tls: bool = False
     """Verify the TLS certificate in https"""
 
     retry_count: int = 10
