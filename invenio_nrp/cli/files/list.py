@@ -7,25 +7,18 @@
 #
 from functools import partial
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
-import requests
 import typer
+from rich import box
 from rich.console import Console
+from rich.table import Table
 from typing_extensions import Annotated
-from yarl import URL
 
 from invenio_nrp import Config
 from invenio_nrp.cli.base import OutputFormat, OutputWriter, run_async
-from invenio_nrp.cli.records.get import read_record, create_output_file_name
-from invenio_nrp.cli.records.table_formatters import format_record_table
-from invenio_nrp.client import AsyncClient
+from invenio_nrp.cli.records.get import create_output_file_name, read_record
 from invenio_nrp.client.async_client.files import File, FilesList
-from invenio_nrp.client.async_client.records import RecordClient
-from invenio_nrp.client.doi import resolve_doi
-from rich import box
-from rich.table import Table
-
 
 
 @run_async
@@ -57,7 +50,9 @@ async def list_files(
 
     # TODO: run this in parallel
     for record_id in ids:
-        record, record_id, repository_config = await read_record(record_id, repository, config, False, model, published)
+        record, record_id, repository_config = await read_record(
+            record_id, repository, config, False, model, published
+        )
         files = await record.files().list()
 
         output = create_output_file_name(
@@ -66,18 +61,31 @@ async def list_files(
         if output and output.parent:
             output.parent.mkdir(parents=True, exist_ok=True)
 
-        with OutputWriter(output, output_format, console,
-                          partial(format_files_table, record)) as printer:
+        with OutputWriter(
+            output, output_format, console, partial(format_files_table, record)
+        ) as printer:
             printer.output(files)
 
 
 def format_files_table(record, files: FilesList[File]):
     table = Table(
-        "Key", "Status", "Mimetype", "Access", "Metadata", "Content URL",
+        "Key",
+        "Status",
+        "Mimetype",
+        "Access",
+        "Metadata",
+        "Content URL",
         title=f"Files for record {record.id}",
-        box=box.SIMPLE, title_justify="left")
+        box=box.SIMPLE,
+        title_justify="left",
+    )
     for file in files.entries:
-        table.add_row(file.key, file.status, file.mimetype,
-                      str(file.access), str(file.metadata),
-                      str(file.links.content))
+        table.add_row(
+            file.key,
+            file.status,
+            file.mimetype,
+            str(file.access),
+            str(file.metadata),
+            str(file.links.content),
+        )
     yield table

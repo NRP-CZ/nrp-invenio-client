@@ -5,29 +5,21 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
-from functools import partial
 from pathlib import Path
 from typing import List, Optional
 
-import requests
 import typer
+from rich import box
 from rich.console import Console
+from rich.table import Table
 from typing_extensions import Annotated
-from yarl import URL
 
 from invenio_nrp import Config
-from invenio_nrp.cli.base import OutputFormat, OutputWriter, run_async
-from invenio_nrp.cli.records.get import read_record, create_output_file_name, get_repository_from_record_id
-from invenio_nrp.cli.records.table_formatters import format_record_table
-from invenio_nrp.client import AsyncClient
+from invenio_nrp.cli.base import run_async
+from invenio_nrp.cli.records.get import create_output_file_name, read_record
 from invenio_nrp.client.async_client.files import File, FilesList
 from invenio_nrp.client.async_client.files.downloader import Downloader
 from invenio_nrp.client.async_client.files.sink.file import FileSink
-from invenio_nrp.client.async_client.records import RecordClient
-from invenio_nrp.client.doi import resolve_doi
-from rich import box
-from rich.table import Table
-
 
 
 @run_async
@@ -56,14 +48,16 @@ async def download_files(
 
     async with Downloader() as downloader:
         for record_id in ids:
-            record, record_id, repository_config = await read_record(record_id, repository, config, False, model, published)
+            record, record_id, repository_config = await read_record(
+                record_id, repository, config, False, model, published
+            )
             files = await record.files().list()
 
             # TODO: better way of handling tls verification
             if not repository_config.verify_tls:
                 downloader.verify_tls = False
 
-            if '*' in keys:
+            if "*" in keys:
                 keys = [file.key for file in files.entries]
             else:
                 keys = set(keys) & {file.key for file in files.entries}
@@ -75,19 +69,18 @@ async def download_files(
                     print(f"Key {key} not found in files, skipping ...")
                     continue
 
-                if '{key}' in str(output):
+                if "{key}" in str(output):
                     is_file = True
                 else:
                     is_file = False
                 # sanitize the key
-                if '/' in key:
-                    key = key.replace('/', '_')
-                if ':' in key:
-                    key = key.replace(':', '_')
+                if "/" in key:
+                    key = key.replace("/", "_")
+                if ":" in key:
+                    key = key.replace(":", "_")
 
                 file_output = create_output_file_name(
-                    output, key, file, None,
-                    record=record.model_dump(mode='json')
+                    output, key, file, None, record=record.model_dump(mode="json")
                 )
                 if not is_file:
                     file_output = file_output / key
@@ -100,11 +93,23 @@ async def download_files(
 
 def format_files_table(record, files: FilesList[File]):
     table = Table(
-        "Key", "Status", "Mimetype", "Access", "Metadata", "Content URL",
+        "Key",
+        "Status",
+        "Mimetype",
+        "Access",
+        "Metadata",
+        "Content URL",
         title=f"Files for record {record.id}",
-        box=box.SIMPLE, title_justify="left")
+        box=box.SIMPLE,
+        title_justify="left",
+    )
     for file in files.entries:
-        table.add_row(file.key, file.status, file.mimetype,
-                      str(file.access), str(file.metadata),
-                      str(file.links.content))
+        table.add_row(
+            file.key,
+            file.status,
+            file.mimetype,
+            str(file.access),
+            str(file.metadata),
+            str(file.links.content),
+        )
     yield table

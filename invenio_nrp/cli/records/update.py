@@ -5,41 +5,40 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
-import json
-import sys
 from pathlib import Path
-from typing import Optional, Any
+from typing import Optional
 
 import typer
 from rich.console import Console
-from typing_extensions import Annotated, Protocol, Self
+from typing_extensions import Annotated, Self
 
 from invenio_nrp import Config
-from invenio_nrp.cli.base import OutputFormat, OutputWriter, run_async, set_variable
-from invenio_nrp.cli.records.metadata import read_metadata
+from invenio_nrp.cli.base import OutputFormat, OutputWriter, run_async
 from invenio_nrp.cli.records.get import get_repository_from_record_id
-from invenio_nrp.cli.records.table_formatters import format_record_table, format_search_table
+from invenio_nrp.cli.records.metadata import read_metadata
+from invenio_nrp.cli.records.table_formatters import format_record_table
 from invenio_nrp.client import AsyncClient
-from invenio_nrp.client.async_client.records import RecordClient, RecordList
-from invenio_nrp.client.async_client.rest import BaseRecord
-from invenio_nrp.cli.base import run_async
+from invenio_nrp.client.async_client.records import RecordClient
 
 
 @run_async
 async def update_record(
-        repository: Annotated[Optional[str], typer.Option(help="Repository alias")] = None,
-        record_id: Annotated[str, typer.Argument(help="Record ID")] = None,
-        metadata: Annotated[str, typer.Argument(help="Metadata")] = None,
-        replace: Annotated[bool, typer.Option("--replace/--merge",
-                                              help="Replace or merge the metadata")] = True,
-        path: Annotated[Optional[str], typer.Option("--path", "-p", help="Path within the metadata")] = None,
-        output: Annotated[
-            Optional[Path], typer.Option("-o", help="Save the output to a file")
-        ] = None,
-        output_format: Annotated[
-            Optional[OutputFormat],
-            typer.Option("-f", help="The format of the output"),
-        ] = None,
+    repository: Annotated[Optional[str], typer.Option(help="Repository alias")] = None,
+    record_id: Annotated[str, typer.Argument(help="Record ID")] = None,
+    metadata: Annotated[str, typer.Argument(help="Metadata")] = None,
+    replace: Annotated[
+        bool, typer.Option("--replace/--merge", help="Replace or merge the metadata")
+    ] = True,
+    path: Annotated[
+        Optional[str], typer.Option("--path", "-p", help="Path within the metadata")
+    ] = None,
+    output: Annotated[
+        Optional[Path], typer.Option("-o", help="Save the output to a file")
+    ] = None,
+    output_format: Annotated[
+        Optional[OutputFormat],
+        typer.Option("-f", help="The format of the output"),
+    ] = None,
 ):
     console = Console()
     config = Config.from_file()
@@ -57,12 +56,8 @@ async def update_record(
     )
 
     client = AsyncClient(repository=repository, config=config)
-    records_api: RecordClient = (
-        client.user_records()
-    )
-    record = await records_api.read_record(
-        record_id=record_id
-    )
+    records_api: RecordClient = client.user_records()
+    record = await records_api.read_record(record_id=record_id)
 
     record.metadata = merge_metadata(record.metadata, metadata, replace, path)
 
@@ -70,6 +65,7 @@ async def update_record(
 
     with OutputWriter(output, output_format, console, format_record_table) as printer:
         printer.output(record)
+
 
 def merge_metadata(old_metadata, new_metadata, replace, path):
     setters = InPathMDSetter.from_path(old_metadata, path)
@@ -94,8 +90,9 @@ def merge_metadata(old_metadata, new_metadata, replace, path):
     setters[-1].value = old
     return setters[0].value
 
+
 class InPathMDSetter:
-    def __init__(self, metadata, parent: 'Self'=None, parent_key=None):
+    def __init__(self, metadata, parent: "Self" = None, parent_key=None):
         self.metadata = metadata
         self.parent = parent
         self.parent_key = parent_key
@@ -103,7 +100,7 @@ class InPathMDSetter:
     @classmethod
     def from_path(cls, metadata, path):
         if path:
-            path = path.split('.')
+            path = path.split(".")
         else:
             path = []
         path = [x for x in path if x]
@@ -119,7 +116,7 @@ class InPathMDSetter:
             ret.append(ret[-1]._get_key(key, empty_factory))
         return ret
 
-    def _get_key(self, key, empty_factory) -> 'Self':
+    def _get_key(self, key, empty_factory) -> "Self":
         if isinstance(self.metadata, dict):
             if key not in self.metadata:
                 return InPathMDSetter(empty_factory(), self, key)
@@ -155,6 +152,7 @@ class InPathMDSetter:
         if self.parent:
             self.parent._set_key_in_parent(self.parent_key, self.metadata)
 
+
 def deep_merge(old_md, new_md):
     if new_md is None:
         return None
@@ -163,4 +161,3 @@ def deep_merge(old_md, new_md):
             old_md.extend(new_md)
         else:
             old_md.append(new_md)
-

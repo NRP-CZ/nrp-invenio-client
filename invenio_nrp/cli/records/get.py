@@ -66,19 +66,22 @@ async def get_record(
             expand,
         )
 
+
 async def get_single_record(
-        record_id,
-        console,
-        config,
-        repository,
-        model,
-        output,
-        output_format,
-        published,
-        draft,
-        expand,
+    record_id,
+    console,
+    config,
+    repository,
+    model,
+    output,
+    output_format,
+    published,
+    draft,
+    expand,
 ):
-    record, record_id, repository_config = await read_record(record_id, repository, config, expand, model, published)
+    record, record_id, repository_config = await read_record(
+        record_id, repository, config, expand, model, published
+    )
 
     output = create_output_file_name(
         output, record.id or record_id, record, output_format
@@ -139,7 +142,7 @@ def format_part(part, obj_id, obj, output_format: OutputFormat, **kwargs):
             "id": obj_id,
             "ext": f".{output_format.value}" if output_format else "table",
             **(obj.model_dump(mode="json")),
-            **kwargs
+            **kwargs,
         }
         return part.format(**options)
     return part

@@ -6,10 +6,10 @@
 # details.
 #
 
+from .create import create_record
 from .download import download_record
 from .get import get_record
 from .search import scan_records, search_records
-from .create import create_record
 from .update import update_record
 
 __all__ = (
@@ -18,5 +18,5 @@ __all__ = (
     "search_records",
     "create_record",
     "scan_records",
-    "update_record"
+    "update_record",
 )

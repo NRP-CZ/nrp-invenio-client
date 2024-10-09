@@ -9,19 +9,19 @@ from __future__ import annotations
 
 import dataclasses
 from typing import Callable, Dict, Optional, Tuple
-from venv import create
 
 from typer import Typer
 
 from invenio_nrp.cli.records import (
+    create_record,
     download_record,
     get_record,
     scan_records,
     search_records,
-    create_record,
-    update_record
+    update_record,
 )
 
+from .files import download_files, list_files
 from .repositories import (
     add_repository,
     describe_repository,
@@ -30,7 +30,6 @@ from .repositories import (
     select_repository,
 )
 from .variables import get_variable, list_variables, remove_variable, set_variable
-from .files import list_files, download_files
 
 commands = [
     # verb centric
