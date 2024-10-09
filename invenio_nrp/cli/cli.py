@@ -21,7 +21,7 @@ from invenio_nrp.cli.records import (
     update_record,
 )
 
-from .files import download_files, list_files
+from .files import download_files, list_files, upload_files
 from .repositories import (
     add_repository,
     describe_repository,
@@ -50,10 +50,12 @@ commands = [
     ("search", "records", search_records),
     ("select", "repository", select_repository),
     ("set", "variable", set_variable),
+    ("upload", "files", upload_files),
     ("update", "record", update_record),
     # noun centric
     ("files", "list", list_files),
     ("files", "download", download_files),
+    ("files", "upload", upload_files),
     ("records", "create", create_record),
     ("records", "download", download_record),
     ("records", "get", get_record),

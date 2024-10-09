@@ -7,5 +7,6 @@
 #
 from .download import download_files
 from .list import list_files
+from .upload import upload_files
 
-__all__ = ("list_files", "download_files")
+__all__ = ("list_files", "download_files", "upload_files")
