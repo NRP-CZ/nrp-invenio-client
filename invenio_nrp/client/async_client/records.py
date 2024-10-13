@@ -7,7 +7,7 @@
 #
 import copy
 from types import SimpleNamespace
-from typing import Any, Dict, List, Optional, Protocol, Self
+from typing import Any, Dict, Optional, Protocol, Self
 
 from pydantic import field_validator, fields
 from yarl import URL
@@ -32,11 +32,12 @@ class FilesEnabled(Model):
 
 
 class Record[
-    FileBase: File, RequestBase: Request, RequestTypeBase: RequestType[Request]
+    FileBase: File,
+    RequestBase: Request,
+    RequestTypeBase: RequestType[Request],
 ](BaseRecord):
-
     links: RecordLinks
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[dict[str, Any]] = None
     files_: Optional[FilesEnabled] = fields.Field(alias="files")
 
     @field_validator("files_", mode="before")
@@ -86,12 +87,10 @@ class Record[
         )
 
 
-class RecordList[RecordBase](
-    RESTList[RecordBase]
-):  # noqa (RequestBase looks like not defined in pycharm)
+class RecordList[RecordBase](RESTList[RecordBase]):  # noqa (RequestBase looks like not defined in pycharm)
     sortBy: Optional[str]
     aggregations: Optional[Any]
-    hits: List[RecordBase]
+    hits: list[RecordBase]
 
 
 class CreateURL(Protocol):
@@ -133,8 +132,7 @@ class RecordClient[RecordBase: Record]:
         idempotent: bool = False,
         files_enabled: bool = True,
     ) -> RecordBase:
-        """
-        Create a new record in the repository.
+        """Create a new record in the repository.
 
         :param data:            the metadata of the record
         :param community:       community in which the record should be created
@@ -180,8 +178,7 @@ class RecordClient[RecordBase: Record]:
         record_id: Optional[str] = None,
         expand=False,
     ) -> RecordBase:
-        """
-        Read a record from the repository. Please provide either record_id or record_url, not both.
+        """Read a record from the repository. Please provide either record_id or record_url, not both.
 
         :param record_id:       the id of the record. Could be either pid or url
         :return:                the record
@@ -203,7 +200,6 @@ class RecordClient[RecordBase: Record]:
         size: Optional[int] = None,
         **facets,
     ) -> RecordList[RecordBase]:
-
         search_url: YarlURL = self._search_url()
         query = {**facets}
         if q:

@@ -6,7 +6,7 @@
 # details.
 #
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import typer
 from rich import box
@@ -25,7 +25,7 @@ from invenio_nrp.client.async_client.files.sink.file import FileSink
 @run_async
 async def download_files(
     record_id: Annotated[str, typer.Argument(help="Record ID")],
-    keys: Annotated[List[str], typer.Argument(help="File key")],
+    keys: Annotated[list[str], typer.Argument(help="File key")],
     output: Annotated[
         Optional[Path], typer.Option("-o", help="Output path")
     ] = Path.cwd(),

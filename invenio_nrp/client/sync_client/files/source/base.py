@@ -20,6 +20,7 @@
 # details.
 #
 """Protocol for data sources."""
+
 from typing import Protocol
 
 from ..os import DataReader
@@ -29,8 +30,7 @@ class DataSource(Protocol):
     """Protocol for data sources."""
 
     def open(self, offset: int = 0) -> DataReader:
-        """
-        Open the data source for reading.
+        """Open the data source for reading.
 
         :param offset:      where to start reading from
         :return:            a reader for the data source

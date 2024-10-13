@@ -6,6 +6,7 @@
 # details.
 #
 """Implementation of the client for requests inside the NRP repository."""
+
 from types import SimpleNamespace
 
 from invenio_nrp.generic import generic_arguments
@@ -19,10 +20,8 @@ from .rest import BaseRecord
 class RecordRequestsClient[RequestBase: BaseRecord, RequestTypeBase: RequestType](
     RequestClient[RequestBase]
 ):
-
     def __init__(self, connection: Connection, requests_url: str, request_types_url):
-        """
-        Initialize the client. Normally not used directly,
+        """Initialize the client. Normally not used directly,
         use AsyncClient().user_records().read(...).requests instead.
 
         :param connection:              connection to the NRP repository
@@ -37,10 +36,7 @@ class RecordRequestsClient[RequestBase: BaseRecord, RequestTypeBase: RequestType
         return generic_arguments.actual_types(self)
 
     async def applicable(self, **params) -> RequestTypeList[RequestTypeBase]:
-        """
-        Return all applicable requests (that is those that the current user can apply for).
-        """
-
+        """Return all applicable requests (that is those that the current user can apply for)."""
         return await self._connection.get(
             url=self._request_types_url,
             result_class=RequestTypeList[self._generic_arguments.RequestTypeBase],

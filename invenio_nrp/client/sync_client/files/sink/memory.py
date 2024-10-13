@@ -38,8 +38,7 @@ class MemoryWriter:
         self._offset = offset
 
     def write(self, b: bytes) -> int:
-        """
-        Write data to the buffer.
+        """Write data to the buffer.
 
         :param b: the bytes to be written
         :return:  number of bytes written

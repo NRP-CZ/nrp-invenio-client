@@ -6,7 +6,7 @@
 # details.
 #
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import typer
 from rich.console import Console
@@ -35,7 +35,7 @@ async def download_record(
         bool, typer.Option(help="Include only published records")
     ] = True,
     draft: Annotated[bool, typer.Option(help="Include only drafts")] = False,
-    record_ids: Annotated[List[str], typer.Argument(help="Record ID")] = None,
+    record_ids: Annotated[list[str], typer.Argument(help="Record ID")] = None,
 ):
     console = Console()
     config = Config.from_file()

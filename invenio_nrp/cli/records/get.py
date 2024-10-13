@@ -6,7 +6,7 @@
 # details.
 #
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import requests
 import typer
@@ -38,7 +38,7 @@ async def get_record(
         bool, typer.Option(help="Include only published records")
     ] = True,
     draft: Annotated[bool, typer.Option(help="Include only drafts")] = False,
-    record_ids: Annotated[List[str], typer.Argument(help="Record ID")] = None,
+    record_ids: Annotated[list[str], typer.Argument(help="Record ID")] = None,
 ):
     console = Console()
     config = Config.from_file()
@@ -149,7 +149,6 @@ def format_part(part, obj_id, obj, output_format: OutputFormat, **kwargs):
 
 
 def get_repository_from_record_id(record_id, config, repository):
-
     if record_id.startswith("doi:"):
         record_id = resolve_doi(record_id[4:])
     elif record_id.startswith("https://doi.org/"):

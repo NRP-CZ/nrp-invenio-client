@@ -20,6 +20,7 @@
 # details.
 #
 """Memory-based data source."""
+
 from ..os import DataReader
 from .base import DataSource
 
@@ -28,8 +29,7 @@ class MemoryReader:
     """A reader for in-memory data."""
 
     def __init__(self, data):
-        """
-        Initialize the reader.
+        """Initialize the reader.
 
         :param data:        the data that will be read
         """
@@ -53,8 +53,7 @@ class MemoryDataSource(DataSource):
     """A data source that reads data from memory."""
 
     def __init__(self, data: bytes, content_type: str):
-        """
-        Initialize the data source.
+        """Initialize the data source.
 
         :param data:                the data to be read
         :param content_type:        the content type of the data

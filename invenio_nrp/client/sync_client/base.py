@@ -20,6 +20,7 @@
 # details.
 #
 """Implementation of the client for the NRP repository."""
+
 from functools import partial
 from types import SimpleNamespace
 
@@ -42,15 +43,13 @@ class SyncClient[
     RequestBase: Request,
     RequestTypeBase: RequestType[Request],
 ](Connection):
-
     def __init__(
         self,
         alias: str = None,
         repository: RepositoryConfig = None,
         config: Config = None,
     ):
-        """
-        Initialize the client.
+        """Initialize the client.
 
         :param alias:       The alias of the repository to use, will default to the default repository if not provided.
         :param config:      The configuration to use, will default to the configuration from the file if not provided.
@@ -68,9 +67,7 @@ class SyncClient[
 
     @property
     def _generic_arguments(self) -> SimpleNamespace:
-        """
-        Get the actual types of generic arguments passed to the client.
-        """
+        """Get the actual types of generic arguments passed to the client."""
         DefaultRequestClass = Request
         DefaultRequestTypeClass = RequestType[Request]
         DefaultFileClass = File
@@ -87,8 +84,7 @@ class SyncClient[
         )
 
     def info(self, refresh=False) -> RepositoryInfo:
-        """
-        Retrieve info endpoint from the repository.
+        """Retrieve info endpoint from the repository.
 
         :return: The parsed content of the info endpoint
 
@@ -104,8 +100,7 @@ class SyncClient[
         ).info(refresh)
 
     def published_records(self, model=None) -> RecordClient[RecordBase]:
-        """
-        Get a client for the records endpoint.
+        """Get a client for the records endpoint.
 
         :param model: The model to use for the records endpoint, will default to all records if not provided.
         :return: A client for the records endpoint
@@ -119,8 +114,7 @@ class SyncClient[
         )
 
     def user_records(self, model=None) -> RecordClient[RecordBase]:
-        """
-        Get a client for the records endpoint.
+        """Get a client for the records endpoint.
 
         :param model: The model to use for the records endpoint, will default to all records if not provided.
         :return: A client for the records endpoint
@@ -134,8 +128,7 @@ class SyncClient[
         )
 
     def requests(self) -> RequestClient[RequestBase]:
-        """
-        Get a client for the requests endpoint, giving API for requests that the user has access to
+        """Get a client for the requests endpoint, giving API for requests that the user has access to
 
         :return: API for requests
         """

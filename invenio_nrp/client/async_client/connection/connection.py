@@ -31,9 +31,7 @@ type HttpClient = RetryClient
 
 @contextlib.asynccontextmanager
 async def _cast_error():
-    """
-    Catch all errors and cast them to Repository*Error.
-    """
+    """Catch all errors and cast them to Repository*Error."""
     try:
         yield
     except RepositoryError:
@@ -46,8 +44,7 @@ class Connection:
     """Pre-configured asynchronous http connection."""
 
     def __init__(self, config: Config, repository_config: RepositoryConfig):
-        """
-        Create a new connection with the given configuration.
+        """Create a new connection with the given configuration.
 
         :param config:                  config for all known repositories
         :param repository_config:       config for the repository to connect to
@@ -64,8 +61,7 @@ class Connection:
 
     @contextlib.asynccontextmanager
     async def _client(self, idempotent=False) -> HttpClient:
-        """
-        Create a new session with the repository and configure it with the token.
+        """Create a new session with the repository and configure it with the token.
         :return: A new http client
         """
         """
@@ -88,9 +84,7 @@ class Connection:
             )
             yield retry_client
 
-    async def get[
-        T
-    ](
+    async def get[T](
         self,
         *,
         url: object,
@@ -99,8 +93,7 @@ class Connection:
         result_context: object = None,
         **kwargs: object,
     ) -> T:
-        """
-        Perform a GET request to the repository.
+        """Perform a GET request to the repository.
 
         :param url:                 the url of the request
         :param idempotent:          True if the request is idempotent, should be for GET requests
@@ -120,9 +113,7 @@ class Connection:
                         response, result_class, result_context
                     )
 
-    async def post[
-        T
-    ](
+    async def post[T](
         self,
         *,
         url,
@@ -133,8 +124,7 @@ class Connection:
         result_context=None,
         **kwargs,
     ) -> T:
-        """
-        Perform a POST request to the repository.
+        """Perform a POST request to the repository.
 
         :param url:                 the url of the request
         :param json:                the json payload of the request (use exactly one of json or data)
@@ -161,9 +151,7 @@ class Connection:
                         response, result_class, result_context
                     )
 
-    async def put[
-        T
-    ](
+    async def put[T](
         self,
         *,
         url,
@@ -173,8 +161,7 @@ class Connection:
         result_context=None,
         **kwargs,
     ) -> T:
-        """
-        Perform a PUT request to the repository.
+        """Perform a PUT request to the repository.
 
         :param url:                     the url of the request
         :param json:                    the json payload of the request (use exactly one of json or data)
@@ -201,8 +188,7 @@ class Connection:
                     )
 
     async def put_stream(self, *, url, file: RawIOBase, **kwargs):
-        """
-        Perform a PUT request to the repository with a file.
+        """Perform a PUT request to the repository with a file.
 
         :param url:                 the url of the request
         :param file:                the file to send
@@ -222,8 +208,7 @@ class Connection:
                     return response
 
     async def delete(self, *, url, idempotent=False, **kwargs):
-        """
-        Perform a DELETE request to the repository.
+        """Perform a DELETE request to the repository.
 
         :param url:                 the url of the request
         :param idempotent:          True if the request is idempotent, normally should be False
@@ -239,11 +224,10 @@ class Connection:
                 async with client.delete(url, auth=self.auth, **kwargs) as response:
                     return await self._get_call_result(response, None, None)
 
-    async def _get_call_result[
-        T
-    ](self, response, result_class: Type[T], result_context):
-        """
-        Get the result from the response.
+    async def _get_call_result[T](
+        self, response, result_class: Type[T], result_context
+    ):
+        """Get the result from the response.
 
         :param response:            the aiohttp response
         :param result_class:        the class to parse the response to
@@ -274,8 +258,7 @@ class Connection:
 
 
 def remove_quotes(etag: str) -> Optional[str]:
-    """
-    Remove quotes from an etag.
+    """Remove quotes from an etag.
 
     :param etag:    the etag header
     :return:        the etag without quotes

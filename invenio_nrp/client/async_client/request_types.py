@@ -6,8 +6,9 @@
 # details.
 #
 """Types of requests that the user can apply for."""
+
 from types import SimpleNamespace
-from typing import List, Optional
+from typing import Optional
 
 from ...generic import generic_arguments
 from ...types import Model, YarlURL
@@ -23,15 +24,14 @@ class RequestTypeActionLinks(Model):
 
 
 class RequestTypeLinks(Model):
-    """Links on a request type"""
+    """Links on a request type."""
 
     actions: RequestTypeActionLinks
     """Actions that can be performed on the request type."""
 
 
 class RequestType[RequestBase: Request](RESTObject):
-    """
-    A type of request that the user can apply for. An example might be a request for access to a dataset,
+    """A type of request that the user can apply for. An example might be a request for access to a dataset,
     publish draft request, assign doi request, ...
     """
 
@@ -46,9 +46,7 @@ class RequestType[RequestBase: Request](RESTObject):
         return generic_arguments.actual_types(self)
 
     async def create(self, payload, submit=False) -> RequestBase:
-        """
-        Create a new request of this type.
-        """
+        """Create a new request of this type."""
         request: RequestBase = await self._connection.post(
             url=self.links.actions.create,
             json=payload,
@@ -60,18 +58,15 @@ class RequestType[RequestBase: Request](RESTObject):
 
 
 class RequestTypeList[RequestTypeBase: RequestType[Request]](
-    RESTList[
-        RequestTypeBase
-    ]  # noqa (RequestTypeBase looks like not defined in pycharm)
+    RESTList[RequestTypeBase]  # noqa (RequestTypeBase looks like not defined in pycharm)
 ):
     """A list of request types as returned from the API"""
 
-    hits: List[RequestTypeBase]
+    hits: list[RequestTypeBase]
     """Internal list of request types"""
 
     def __getitem__(self, type_id) -> RequestTypeBase:
-        """
-        Returns a request type by its type_id
+        """Returns a request type by its type_id
 
         :param type_id:     type_id, stays stable regardless of server version
         :return:            request type or None if not found
@@ -81,8 +76,7 @@ class RequestTypeList[RequestTypeBase: RequestType[Request]](
                 return hit
 
     def keys(self):
-        """
-        Return all type_ids of the request types in this list.
+        """Return all type_ids of the request types in this list.
 
         :return: a set of type_ids
         """

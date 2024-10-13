@@ -20,6 +20,7 @@
 # details.
 #
 """A source of data to upload to the repository."""
+
 from .base import DataSource
 from .file import FileDataSource
 from .memory import MemoryDataSource

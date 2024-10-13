@@ -6,7 +6,8 @@
 # details.
 #
 """Bearer authentication support for aiohttp"""
-from typing import List, Optional
+
+from typing import Optional
 
 from aiohttp import BasicAuth, ClientRequest, hdrs
 
@@ -20,8 +21,7 @@ class Authentication(BasicAuth):
     # provide pass different auth types to the ClientRequest
 
     def apply(self, request: ClientRequest) -> None:
-        """
-        Apply the authentication to the request.
+        """Apply the authentication to the request.
 
         :param request: aiohttp request where the authentication should be applied
         """
@@ -44,9 +44,8 @@ class AuthenticatedClientRequest(ClientRequest):
 class BearerAuthentication(Authentication):
     """Bearer authentication class that adds the Bearer token to the request."""
 
-    def __init__(self, tokens: List[URLBearerToken]):
-        """
-        Creates a new BearerAuthentication instance.
+    def __init__(self, tokens: list[URLBearerToken]):
+        """Creates a new BearerAuthentication instance.
 
         :param tokens: list of (host url, token) pairs. The token will be added to the request if the host url matches
             (including the scheme).
@@ -54,8 +53,7 @@ class BearerAuthentication(Authentication):
         self.tokens = tokens
 
     def apply(self, request: ClientRequest) -> None:
-        """
-        Apply the authentication to the request.
+        """Apply the authentication to the request.
 
         :param request: aiohttp request where the authentication should be applied
         """

@@ -5,8 +5,7 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
-"""
-A downloader for potentially large files that can be used to download files from the NRP Invenio API
+"""A downloader for potentially large files that can be used to download files from the NRP Invenio API
 and save them to a local file.
 
 Usage:
@@ -25,7 +24,7 @@ import dataclasses
 import traceback
 from enum import StrEnum, auto
 from pathlib import Path
-from typing import Annotated, Any, Callable, List, Optional
+from typing import Annotated, Any, Callable, Optional
 
 import typer.cli
 from aiohttp import ClientSession, TCPConnector
@@ -74,9 +73,7 @@ class DownloadJob:
     downloaded_size: int = 0
 
     async def start_downloading(self):
-        """
-        Start downloading the file
-        """
+        """Start downloading the file"""
         self._send_progress(ProgressEvent.DOWNLOAD_FILE_STARTED)
 
         async with self.downloader._client() as client:
@@ -263,8 +260,7 @@ class Limiter(asyncio.Semaphore):
     """A class to limit the number of simultaneous connections"""
 
     def __init__(self, capacity):
-        """
-        Initialize the limiter
+        """Initialize the limiter
 
         :param capacity:    the number of simultaneous connections
         """
@@ -273,8 +269,7 @@ class Limiter(asyncio.Semaphore):
 
     @property
     def free(self):
-        """
-        The number of free slots
+        """The number of free slots
 
         :return:   the number of remaining connections
         """
@@ -286,8 +281,7 @@ global_limiter = Limiter(10)
 
 @dataclasses.dataclass
 class Downloader:
-    """
-    A downloader for potentially large files that can be used to download files from the NRP Invenio API
+    """A downloader for potentially large files that can be used to download files from the NRP Invenio API
     or other https sources
     """
 
@@ -329,7 +323,7 @@ class Downloader:
     _internal_lock: asyncio.Lock = asyncio.Lock()
     """Internal lock to protect the state of the downloader"""
 
-    _download_jobs: List[DownloadJob] = dataclasses.field(default_factory=list)
+    _download_jobs: list[DownloadJob] = dataclasses.field(default_factory=list)
     """List of download jobs"""
 
     async def __aenter__(self):
@@ -347,8 +341,7 @@ class Downloader:
             self._send_progress(ProgressEvent.DOWNLOADER_FINISHED, None)
 
     def add(self, url: str, sink: DataSink, auth: Optional[Any] = None):
-        """
-        Add a new download job, will be started when capacity allows
+        """Add a new download job, will be started when capacity allows
 
         :param url:         url of the file to be downloaded
         :param sink:        sink to save the downloaded data to
@@ -359,8 +352,7 @@ class Downloader:
     async def _start_download(
         self, url: str, sink: DataSink, auth: Optional[Any] = None
     ):
-        """
-        Internal method to start the download, guarded by the limiter
+        """Internal method to start the download, guarded by the limiter
 
         :param url:         url of the file to be downloaded
         :param sink:        sink to save the downloaded data to
@@ -377,24 +369,20 @@ class Downloader:
         self.on_progress(self, event, job, message)
 
     def create_task(self, task: Any):
-        """
-        Creates a new task, called from job & chunk
+        """Creates a new task, called from job & chunk
 
         :param task:        coro to be executed
         """
         return self._tg.create_task(task)
 
     async def stop(self):
-        """
-        Abort all downloads
-        """
+        """Abort all downloads"""
         if self._tg:
             await self._tg._abort()  # noqa
 
     @contextlib.asynccontextmanager
     async def _client(self) -> RetryClient:
-        """
-        Create a new session with the repository and configure it with the token.
+        """Create a new session with the repository and configure it with the token.
         :return: A new http client
         """
         connector = TCPConnector(verify_ssl=self.verify_tls)
@@ -415,8 +403,7 @@ class Downloader:
 
     @property
     def has_capacity(self):
-        """
-        Check if there is a free slot in the limiter
+        """Check if there is a free slot in the limiter
 
         :return:    True if can start an immediate download
         """
@@ -424,8 +411,7 @@ class Downloader:
 
     @property
     def total_chunks(self):
-        """
-        The total number of chunks that will be downloaded
+        """The total number of chunks that will be downloaded
 
         :return:    the total number of chunks
         """
@@ -433,8 +419,7 @@ class Downloader:
 
     @property
     def downloaded_chunks(self):
-        """
-        The number of chunks that have been downloaded
+        """The number of chunks that have been downloaded
 
         :return:    the number of downloaded chunks
         """
@@ -442,8 +427,7 @@ class Downloader:
 
     @property
     def total_jobs(self):
-        """
-        The total number of download jobs
+        """The total number of download jobs
 
         :return:    the total number of jobs
         """
@@ -451,8 +435,7 @@ class Downloader:
 
     @property
     def downloaded_jobs(self):
-        """
-        The number of jobs that have been downloaded
+        """The number of jobs that have been downloaded
 
         :return:    the number of downloaded jobs
         """
@@ -464,17 +447,15 @@ class Downloader:
 
     @property
     def total_size(self):
-        """
-        The total size of the files to download
+        """The total size of the files to download
 
         :return:    the total size of the files
         """
         return sum((job.total_size or 0) for job in self._download_jobs)
 
     @property
-    def downloaded_size(self):
-        """
-        The total size of the downloaded files
+    def downloaded_size(self) -> int:
+        """The total size of the downloaded files
 
         :return:  the total size of the downloaded files
         """
@@ -568,14 +549,13 @@ app = typer.Typer(pretty_exceptions_enable=False)
 @app.command()
 def main(
     urls: Annotated[
-        List[str],
+        list[str],
         typer.Argument(
             help="A list of urls to download. Might be in the form of 'url' or 'url->local_file_path'"
         ),
-    ]
+    ],
 ):
-    """
-    Download files from the given urls and save them to the local files. Authentication will be taken either
+    """Download files from the given urls and save them to the local files. Authentication will be taken either
     from the ~/.nrp/invenio-config.json (Bearer tokens if the file is downloaded from a configured repository)
     or from .netrc.
     """

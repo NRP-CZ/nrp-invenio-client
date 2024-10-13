@@ -5,8 +5,10 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
+"""Commandline clients for working with variables."""
+
 from pathlib import Path
-from typing import Annotated, List, Optional
+from typing import Annotated, Optional
 
 import typer
 from rich import box
@@ -20,11 +22,9 @@ from .base import OutputFormat, OutputWriter
 
 def set_variable(
     name: Annotated[str, typer.Argument(help="The name of the variable")],
-    values: Annotated[List[str], typer.Argument(help="The values of the variable")],
-):
-    """
-    Add a variable to the configuration.
-    """
+    values: Annotated[list[str], typer.Argument(help="The values of the variable")],
+) -> None:
+    """Add a variable to the configuration."""
     console = Console()
     console.print()
     config = Config.from_file()
@@ -38,10 +38,8 @@ def set_variable(
 
 def remove_variable(
     name: Annotated[str, typer.Argument(help="The name of the variable")],
-):
-    """
-    Remove a variable from the configuration.
-    """
+) -> None:
+    """Remove a variable from the configuration."""
     console = Console()
     console.print()
     config = Config.from_file()
@@ -62,10 +60,8 @@ def list_variables(
         Optional[OutputFormat],
         typer.Option(help="The format of the output"),
     ] = "table",
-):
-    """
-    List all variables.
-    """
+) -> None:
+    """List all variables."""
     console = Console()
     config = Config.from_file()
     variables = config.load_variables()
@@ -84,23 +80,22 @@ def get_variable(
         Optional[OutputFormat],
         typer.Option(help="The format of the output"),
     ] = "table",
-):
-    """
-    Get all variables.
-    """
+) -> None:
+    """Get all variables."""
     console = Console()
     config = Config.from_file()
     variables = config.load_variables()
     value = variables.get(variable)
 
-    def variable_table(value):
+    def variable_table(value: list[str]) -> str:
         return "\n".join(value)
 
     with OutputWriter(output, output_format, console, variable_table) as printer:
         printer.output(value)
 
 
-def variables_table(variables):
+def variables_table(variables: dict[str, list[str]]) -> Table:
+    """Render a table of variables."""
     table = Table(title="Variables", box=box.SIMPLE, title_justify="left")
     table.add_column("Name", style="cyan")
     table.add_column("Values")

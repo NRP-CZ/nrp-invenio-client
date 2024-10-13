@@ -19,8 +19,9 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
-"""Base rest types"""
-from typing import Iterable, List, Optional, Self
+"""Base rest types."""
+
+from typing import Iterable, Optional, Self
 
 from pydantic import Field, PrivateAttr, fields, model_validator
 from pydantic_core.core_schema import ValidationInfo
@@ -32,9 +33,7 @@ from .connection import Connection
 
 
 class RESTObjectLinks(Model):
-    """
-    Each rest object must return a links section
-    """
+    """Each rest object must return a links section."""
 
     self_: YarlURL = fields.Field(alias="self")
     """Link to the object itself (API)"""
@@ -44,9 +43,7 @@ class RESTObjectLinks(Model):
 
 
 class RESTObject(Model):
-    """
-    Base class for all objects returned from the REST API.
-    """
+    """Base class for all objects returned from the REST API."""
 
     _connection: Connection = PrivateAttr(None)
     """Connection is automatically injected"""
@@ -65,7 +62,8 @@ class RESTObject(Model):
             self._etag = context.get("etag")
         return self
 
-    def _etag_headers(self):
+    def _etag_headers(self) -> dict[str, str]:
+        """Return the If-Match header if etag is set."""
         headers = {}
         if self._etag:
             headers["If-Match"] = self._etag
@@ -73,9 +71,7 @@ class RESTObject(Model):
 
 
 class RESTPaginationLinks(Model):
-    """
-    Extra links on the pagination response
-    """
+    """Extra links on the pagination response."""
 
     next: Optional[YarlURL] = None
     """Link to the next page"""
@@ -99,10 +95,10 @@ class RESTList[RestObject: RESTObject](RESTObject):
     total: int
     """Total number of records that matched the search (not the number of returned records on the page)"""
 
-    hits: List[RestObject]
+    hits: list[RestObject]
     """List of records on the current page"""
 
-    class Config:
+    class Config:  # noqa
         extra = "forbid"
 
     @model_validator(mode="before")
@@ -115,23 +111,23 @@ class RESTList[RestObject: RESTObject](RESTObject):
         return obj
 
     def __len__(self):
-        """Return the number of records on the current page"""
+        """Return the number of records on the current page."""
         return len(self.hits)
 
     def __iter__(self):
-        """Iterate over the records on the current page"""
+        """Iterate over the records on the current page."""
         return iter(self.hits)
 
-    def has_next(self):
-        """Check if there is a next page"""
+    def has_next(self) -> bool:
+        """Check if there is a next page."""
         return bool(self.links.next)
 
-    def has_prev(self):
-        """Check if there is a previous page"""
+    def has_prev(self) -> bool:
+        """Check if there is a previous page."""
         return bool(self.links.prev)
 
     def next_page(self) -> Self:
-        """Fetch and return the next page"""
+        """Fetch and return the next page."""
         if self.links.next:
             return self._connection.get(
                 url=self.links.next,
@@ -140,7 +136,7 @@ class RESTList[RestObject: RESTObject](RESTObject):
         raise StopIteration()
 
     def prev_page(self) -> Self:
-        """Fetch and return the previous page"""
+        """Fetch and return the previous page."""
         if self.links.prev:
             return self._connection.get(
                 url=self.links.prev,
@@ -149,9 +145,7 @@ class RESTList[RestObject: RESTObject](RESTObject):
         raise StopIteration()
 
     def all(self) -> Iterable[RestObject]:
-        """
-        Iterate over all records in all pages, starting from the current page.
-        """
+        """Iterate over all records in all pages, starting from the current page."""
         page = self
         for rec in page.hits:
             yield rec

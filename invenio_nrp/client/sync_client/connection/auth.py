@@ -5,7 +5,6 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
-from typing import List
 
 import requests.auth
 from yarl import URL
@@ -14,7 +13,7 @@ from invenio_nrp.types import URLBearerToken
 
 
 class BearerAuthentication(requests.auth.AuthBase):
-    def __init__(self, tokens: List[URLBearerToken]):
+    def __init__(self, tokens: list[URLBearerToken]):
         self.tokens = tokens
 
     def __call__(self, r):

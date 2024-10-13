@@ -20,6 +20,7 @@
 # details.
 #
 """Registry of known transfer types."""
+
 from typing import Type
 
 from ..files import TransferType
@@ -30,14 +31,11 @@ class TransferRegistry:
     """Registry of known transfer types."""
 
     def __init__(self):
-        """
-        Initialize the registry.
-        """
+        """Initialize the registry."""
         self.transfers = {}
 
     def register(self, transfer_type: TransferType, transfer: Type[Transfer]):
-        """
-        Register a transfer type.
+        """Register a transfer type.
 
         :param transfer_type:       transfer type
         :param transfer:            registered transfer
@@ -45,8 +43,7 @@ class TransferRegistry:
         self.transfers[transfer_type] = transfer
 
     def get(self, transfer_type: TransferType) -> Transfer:
-        """
-        Get a transfer for a transfer type
+        """Get a transfer for a transfer type
 
         :param transfer_type:       transfer type
         :return:                    instance of a transfer

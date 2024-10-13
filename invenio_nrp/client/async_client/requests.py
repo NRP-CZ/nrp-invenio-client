@@ -6,10 +6,11 @@
 # details.
 #
 """Implementation of the client for requests inside the NRP repository."""
+
 from datetime import datetime
 from enum import StrEnum, auto
 from types import SimpleNamespace
-from typing import Annotated, Any, Dict, List, Optional
+from typing import Annotated, Any, Optional
 
 from pydantic import AfterValidator, BeforeValidator, Field, fields, model_validator
 
@@ -131,15 +132,15 @@ class Request(BaseRecord):
     """Is the request expired?"""
 
     # TODO: maybe use special class for this with (type, id) fields and not generic dicts
-    created_by: Annotated[Dict[str, str], AfterValidator(single_value_expected)]
+    created_by: Annotated[dict[str, str], AfterValidator(single_value_expected)]
     """Who created the request. It is a dictionary containing a 
     reference to the creator (NOT the links at the moment)."""
 
-    receiver: Annotated[Dict[str, str], AfterValidator(single_value_expected)]
+    receiver: Annotated[dict[str, str], AfterValidator(single_value_expected)]
     """Who is the receiver of the request. It is a dictionary containing a 
     reference to the receiver (NOT the links at the moment)."""
 
-    topic: Annotated[Dict[str, str], AfterValidator(single_value_expected)]
+    topic: Annotated[dict[str, str], AfterValidator(single_value_expected)]
     """The topic of the request. It is a dictionary containing a
     reference to the topic (NOT the links at the moment)."""
 
@@ -147,8 +148,7 @@ class Request(BaseRecord):
     """Payload of the request. It can be of different types, depending on the request type."""
 
     def submit(self, payload=None):
-        """
-        Submit the request. The request will be either passed to receivers, or auto-approved
+        """Submit the request. The request will be either passed to receivers, or auto-approved
         depending on the current workflow
         """
         return self._push_request(
@@ -158,9 +158,7 @@ class Request(BaseRecord):
         )
 
     def accept(self, payload=None):
-        """
-        Accept the submitted request.
-        """
+        """Accept the submitted request."""
         return self._push_request(
             required_request_status=RequestStatus.SUBMITTED,
             action="accept",
@@ -168,9 +166,7 @@ class Request(BaseRecord):
         )
 
     def decline(self, payload=None):
-        """
-        Decline the submitted request.
-        """
+        """Decline the submitted request."""
         return self._push_request(
             required_request_status=RequestStatus.SUBMITTED,
             action="decline",
@@ -178,9 +174,7 @@ class Request(BaseRecord):
         )
 
     def cancel(self, payload=None):
-        """
-        Cancel the request.
-        """
+        """Cancel the request."""
         return self._push_request(
             required_request_status=RequestStatus.CREATED,
             action="cancel",
@@ -214,7 +208,7 @@ class RequestList[RequestBase: Request](
     aggregations: Optional[Any]
     """Aggregations of the list"""
 
-    hits: List[RequestBase]
+    hits: list[RequestBase]
     """List of requests that matched the search query"""
 
 
@@ -235,8 +229,7 @@ class RequestClient[RequestBase: Request]:
         return generic_arguments.actual_types(self)
 
     async def all(self, **params) -> RequestList[RequestBase]:
-        """
-        Search for all requests the user has access to.
+        """Search for all requests the user has access to.
 
         :param params:  Additional parameters to pass to the search query, see invenio docs for possible values
         """
@@ -248,45 +241,31 @@ class RequestClient[RequestBase: Request]:
         )
 
     async def created(self, **params) -> RequestList[RequestBase]:
-        """
-        Return all requests, that are created but not yet submitted
-        """
+        """Return all requests, that are created but not yet submitted"""
         return await self.all(status="created", **params)
 
     async def submitted(self, **params) -> RequestList[RequestBase]:
-        """
-        Return all submitted requests
-        """
+        """Return all submitted requests"""
         return await self.all(status="submitted", **params)
 
     async def accepted(self, **params) -> RequestList[RequestBase]:
-        """
-        Return all accepted requests
-        """
+        """Return all accepted requests"""
         return await self.all(status="accepted", **params)
 
     async def declined(self, **params) -> RequestList[RequestBase]:
-        """
-        Return all declined requests
-        """
+        """Return all declined requests"""
         return await self.all(status="declined", **params)
 
     async def expired(self, **params) -> RequestList[RequestBase]:
-        """
-        Return all expired requests
-        """
+        """Return all expired requests"""
         return await self.all(status="expired", **params)
 
     async def cancelled(self, **params) -> RequestList[RequestBase]:
-        """
-        Return all cancelled requests
-        """
+        """Return all cancelled requests"""
         return await self.all(status="cancelled", **params)
 
     async def read_request(self, request_id) -> RequestBase:
-        """
-        Read a single request by its id
-        """
+        """Read a single request by its id"""
         return await self._connection.get(
             url=f"{self._requests_url}/{request_id}",
             result_class=self._generic_arguments.RequestBase,

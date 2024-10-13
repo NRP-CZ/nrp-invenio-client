@@ -6,6 +6,7 @@
 # details.
 #
 """Implementation of a sink that writes data to filesystem."""
+
 import contextlib
 from pathlib import Path
 

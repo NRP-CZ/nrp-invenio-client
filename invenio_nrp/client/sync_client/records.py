@@ -21,7 +21,7 @@
 #
 import copy
 from types import SimpleNamespace
-from typing import Any, Dict, List, Optional, Protocol, Self
+from typing import Any, Dict, Optional, Protocol, Self
 
 from pydantic import field_validator, fields
 from yarl import URL
@@ -46,11 +46,12 @@ class FilesEnabled(Model):
 
 
 class Record[
-    FileBase: File, RequestBase: Request, RequestTypeBase: RequestType[Request]
+    FileBase: File,
+    RequestBase: Request,
+    RequestTypeBase: RequestType[Request],
 ](BaseRecord):
-
     links: RecordLinks
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[dict[str, Any]] = None
     files_: Optional[FilesEnabled] = fields.Field(alias="files")
 
     @field_validator("files_", mode="before")
@@ -100,12 +101,10 @@ class Record[
         )
 
 
-class RecordList[RecordBase](
-    RESTList[RecordBase]
-):  # noqa (RequestBase looks like not defined in pycharm)
+class RecordList[RecordBase](RESTList[RecordBase]):  # noqa (RequestBase looks like not defined in pycharm)
     sortBy: Optional[str]
     aggregations: Optional[Any]
-    hits: List[RecordBase]
+    hits: list[RecordBase]
 
 
 class CreateURL(Protocol):
@@ -121,6 +120,7 @@ class SearchURL(Protocol):
 
 
 class RecordClient[RecordBase: Record]:
+    """Record client for synchronous communication with the NRP repository."""
     def __init__(
         self,
         connection: Connection,
@@ -129,6 +129,7 @@ class RecordClient[RecordBase: Record]:
         read_url: ReadURL,
         search_url: SearchURL,
     ):
+        """Initialize the record client class."""
         self._connection = connection
         self._model = model
         self._create_url = create_url
@@ -147,8 +148,7 @@ class RecordClient[RecordBase: Record]:
         idempotent: bool = False,
         files_enabled: bool = True,
     ) -> RecordBase:
-        """
-        Create a new record in the repository.
+        """Create a new record in the repository.
 
         :param data:            the metadata of the record
         :param community:       community in which the record should be created
@@ -166,10 +166,7 @@ class RecordClient[RecordBase: Record]:
 
         data = {**data}
         if community or workflow:
-            if "parent" in data:
-                parent = copy.deepcopy(data.pop("parent"))
-            else:
-                parent = {}
+            parent = copy.deepcopy(data.pop("parent")) if "parent" in data else {}
             data["parent"] = parent
             if community:
                 assert (
@@ -192,13 +189,12 @@ class RecordClient[RecordBase: Record]:
         self,
         *,
         record_id: Optional[str] = None,
-        expand=False,
+        expand: bool = False,
     ) -> RecordBase:
-        """
-        Read a record from the repository. Please provide either record_id or record_url, not both.
+        """Read a record from the repository. Please provide either record_id or record_url, not both.
 
         :param record_id:       the id of the record in any format (id, url, doi, ...)
-        :param record_url:      the url of the record.
+        :param expand:          if True, the record will be expanded
         :return:                the record
         """
         record_url = self._read_url(record_id)
@@ -216,9 +212,16 @@ class RecordClient[RecordBase: Record]:
         q: Optional[str] = None,
         page: Optional[int] = None,
         size: Optional[int] = None,
-        **facets,
+        **facets: str,
     ) -> RecordList[RecordBase]:
+        """Search for a record.
 
+        :param q:       query string
+        :param page:    page number
+        :param size:    number of records per page
+        :param facets:  facets to filter the search
+        :return:        list of records (single page)
+        """
         search_url: YarlURL = self._search_url()
         query = {**facets}
         if q:

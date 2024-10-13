@@ -20,6 +20,7 @@
 # details.
 #
 """Protocol for data sinks."""
+
 from enum import StrEnum, auto
 from typing import Protocol
 
@@ -41,16 +42,14 @@ class DataSink(Protocol):
     """Protocol for data sinks."""
 
     def allocate(self, size: int) -> None:
-        """
-        Allocate space for the sink.
+        """Allocate space for the sink.
 
         :param size: The size of the sink in bytes.
         """
         ...
 
     def open_chunk(self, offset: int = 0) -> DataWriter:
-        """
-        Get a writer for the sink, starting at the given offset.
+        """Get a writer for the sink, starting at the given offset.
 
         :param offset: The offset in bytes from the start of the sink.
         :return: A writer for the sink.
@@ -58,9 +57,7 @@ class DataSink(Protocol):
         ...
 
     def close(self) -> None:
-        """
-        Close the sink and all unclosed writers.
-        """
+        """Close the sink and all unclosed writers."""
         ...
 
     @property

@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Callable, Dict, Optional, Tuple
+from typing import Callable, Optional, Tuple
 
 from typer import Typer
 
@@ -21,7 +21,7 @@ from invenio_nrp.cli.records import (
     update_record,
 )
 
-from .files import download_files, list_files, upload_files
+from .files import download_files, list_files, update_file_metadata, upload_files
 from .repositories import (
     add_repository,
     describe_repository,
@@ -50,12 +50,14 @@ commands = [
     ("search", "records", search_records),
     ("select", "repository", select_repository),
     ("set", "variable", set_variable),
-    ("upload", "files", upload_files),
+    ("upload", "file", upload_files),
     ("update", "record", update_record),
+    ("update", "file", update_file_metadata),
     # noun centric
     ("files", "list", list_files),
     ("files", "download", download_files),
     ("files", "upload", upload_files),
+    ("files", "update", update_file_metadata),
     ("records", "create", create_record),
     ("records", "download", download_record),
     ("records", "get", get_record),
@@ -77,7 +79,7 @@ commands = [
 
 @dataclasses.dataclass
 class CommandTreeNode:
-    children: Dict[str, CommandTreeNode] = dataclasses.field(default_factory=dict)
+    children: dict[str, CommandTreeNode] = dataclasses.field(default_factory=dict)
     command: Optional[Callable] = None
 
     def register_commands(self, parent: Typer):

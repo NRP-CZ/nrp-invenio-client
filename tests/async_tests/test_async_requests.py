@@ -60,7 +60,6 @@ async def test_delete_request(local_client, local_records, draft_record):
 
 
 async def test_list_requests(local_client: AsyncClient, draft_record):
-
     record_requests = draft_record.requests()
     all_requests = local_client.requests()
 
@@ -107,7 +106,6 @@ async def test_list_requests(local_client: AsyncClient, draft_record):
 
 
 async def test_custom_request_class(nrp_repository_config):
-
     class MyRequest(Request):
         pass
 

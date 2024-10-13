@@ -6,7 +6,8 @@
 # details.
 #
 """Base rest types"""
-from typing import Iterable, List, Optional, Self
+
+from typing import Iterable, Optional, Self
 
 from pydantic import Field, PrivateAttr, fields, model_validator
 from pydantic_core.core_schema import ValidationInfo
@@ -18,9 +19,7 @@ from .connection import Connection
 
 
 class RESTObjectLinks(Model):
-    """
-    Each rest object must return a links section
-    """
+    """Each rest object must return a links section"""
 
     self_: YarlURL = fields.Field(alias="self")
     """Link to the object itself (API)"""
@@ -30,9 +29,7 @@ class RESTObjectLinks(Model):
 
 
 class RESTObject(Model):
-    """
-    Base class for all objects returned from the REST API.
-    """
+    """Base class for all objects returned from the REST API."""
 
     _connection: Connection = PrivateAttr(None)
     """Connection is automatically injected"""
@@ -59,9 +56,7 @@ class RESTObject(Model):
 
 
 class RESTPaginationLinks(Model):
-    """
-    Extra links on the pagination response
-    """
+    """Extra links on the pagination response"""
 
     next: Optional[YarlURL] = None
     """Link to the next page"""
@@ -85,7 +80,7 @@ class RESTList[RestObject: RESTObject](RESTObject):
     total: int
     """Total number of records that matched the search (not the number of returned records on the page)"""
 
-    hits: List[RestObject]
+    hits: list[RestObject]
     """List of records on the current page"""
 
     class Config:
@@ -135,9 +130,7 @@ class RESTList[RestObject: RESTObject](RESTObject):
         raise StopIteration()
 
     async def all(self) -> Iterable[RestObject]:
-        """
-        Iterate over all records in all pages, starting from the current page.
-        """
+        """Iterate over all records in all pages, starting from the current page."""
         page = self
         for rec in page.hits:
             yield rec

@@ -6,7 +6,6 @@
 # details.
 #
 """Client for the .well-known/repository endpoint."""
-from typing import List
 
 from pydantic import RootModel
 
@@ -30,8 +29,7 @@ class AsyncInfoClient:
         self._connection = connection
 
     async def info(self, refresh=False) -> RepositoryInfo:
-        """
-        Retrieve info endpoint from the repository.
+        """Retrieve info endpoint from the repository.
 
         :return: The parsed content of the info endpoint
 
@@ -51,7 +49,7 @@ class AsyncInfoClient:
             )
             self._repository_config.info = info
 
-            ModelList = RootModel[List[ModelInfo]]
+            ModelList = RootModel[list[ModelInfo]]
             models = await self._connection.get(
                 url=self._repository_config.info.links.models,
                 result_class=ModelList,
@@ -60,7 +58,7 @@ class AsyncInfoClient:
                 model.name: model for model in models.root
             }
 
-        except (RepositoryClientError, RepositoryCommunicationError) as e:
+        except (RepositoryClientError, RepositoryCommunicationError):
             # not a NRP based repository, suppose that it is plain invenio rdm
             self._repository_config.info = self._make_rdm_info()
 

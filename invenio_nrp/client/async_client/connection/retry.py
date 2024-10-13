@@ -6,6 +6,7 @@
 # details.
 #
 """Implementation of 429 retry strategy for aiohttp."""
+
 from typing import Optional
 
 from aiohttp import ClientResponse

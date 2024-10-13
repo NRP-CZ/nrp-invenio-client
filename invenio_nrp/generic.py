@@ -5,9 +5,11 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
+"""Helper module to extract actual types from generic objects."""
+
 import dataclasses
 from types import SimpleNamespace
-from typing import Any, Dict, List, Type, TypeVar
+from typing import Type, TypeVar
 
 from pydantic import BaseModel
 from typing_extensions import get_args
@@ -15,10 +17,15 @@ from typing_extensions import get_args
 
 @dataclasses.dataclass
 class GenericsArguments:
-    _cache: Dict[Type, SimpleNamespace] = dataclasses.field(default_factory=dict)
-    _type_names_cache: Dict[Type, List[str]] = dataclasses.field(default_factory=dict)
+    """Helper to extract actual types from generic objects."""
 
-    def actual_types(self, obj: Any, **default_types) -> SimpleNamespace:
+    _cache: dict[Type, SimpleNamespace] = dataclasses.field(default_factory=dict)
+    _type_names_cache: dict[Type, list[str]] = dataclasses.field(default_factory=dict)
+
+    def actual_types(
+        self, obj: object, **default_types: dict[str, Type]
+    ) -> SimpleNamespace:
+        """Extract actual types from a generic object."""
         key = (type(obj), frozenset(default_types.items()))
 
         if key in self._cache:
@@ -39,8 +46,8 @@ class GenericsArguments:
             if actual_types is None:
                 actual_types = [None] * len(generic_type_names)
 
-        assert len(generic_type_names) == len(
-            actual_types
+        assert (
+            len(generic_type_names) == len(actual_types)
         ), f"Generic type names {generic_type_names} and actual types {actual_types} do not match"
 
         resolved_types = {}
@@ -66,10 +73,11 @@ class GenericsArguments:
         self._cache[type(obj)] = ns
         return ns
 
-    def _extract_actual_types_from_orig_class(self, orig_class: Type) -> List[Type]:
+    def _extract_actual_types_from_orig_class(self, orig_class: Type) -> list[Type]:
         return [arg for arg in get_args(orig_class)]
 
-    def _extract_actual_types_from_pydantic(self, clz: Type):
+    def _extract_actual_types_from_pydantic(self, clz: Type) -> list[Type]:
+        """Extract actual generic types from pydantic metadata."""
         for m in clz.mro():
             pydantic_metadata = getattr(m, "__pydantic_generic_metadata__", None)
             if pydantic_metadata and pydantic_metadata["args"]:
@@ -78,7 +86,7 @@ class GenericsArguments:
             f"Could not extract pydantic metadata from {clz}, no typing args found on class or any ancestors"
         )
 
-    def _extract_actual_types_from_mro(self, clz: Type) -> List[Type] | None:
+    def _extract_actual_types_from_mro(self, clz: Type) -> list[Type] | None:
         for m in clz.mro():
             for base_class in getattr(m, "__orig_bases__", []):
                 ret = []
@@ -90,7 +98,7 @@ class GenericsArguments:
                     return ret
         return None
 
-    def _extract_generic_type_names(self, clz: Type):
+    def _extract_generic_type_names(self, clz: Type) -> list[str]:
         if clz in self._type_names_cache:
             return self._type_names_cache[clz]
         for m in clz.mro():
@@ -100,7 +108,7 @@ class GenericsArguments:
                 return generic_names
         raise ValueError(f"Could not extract generic type names from {clz}")
 
-    def _extract_generic_type_names_from_class(self, clz: Type) -> List[str]:
+    def _extract_generic_type_names_from_class(self, clz: Type) -> list[str]:
         orig_bases = getattr(clz, "__orig_bases__", [])
         for base in orig_bases:
             # nasty hack to filter out just Generic, it should be GenericAlias but that is not exposed
@@ -117,3 +125,4 @@ class GenericsArguments:
 
 
 generic_arguments = GenericsArguments()
+"""Helper to extract actual types from generic objects."""

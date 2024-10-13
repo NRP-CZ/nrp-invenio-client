@@ -5,6 +5,8 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
+"""Pydantic annotation for Yarl URL type."""
+
 from typing import Annotated, Any
 
 from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
@@ -14,12 +16,15 @@ from yarl import URL
 
 
 class YarlURLTypePydanticAnnotation:
+    """Pydantic annotation for Yarl URL type."""
+
     @classmethod
     def __get_pydantic_core_schema__(
         cls,
-        _source_type: Any,
+        _source_type: Any,  # noqa: ANN401
         _handler: GetCoreSchemaHandler,
     ) -> core_schema.CoreSchema:
+        """Return schema for validating and serializing `YarlURL`."""
 
         def validate_from_str(value: str) -> URL:
             ret = URL(value)
@@ -52,9 +57,10 @@ class YarlURLTypePydanticAnnotation:
     def __get_pydantic_json_schema__(
         cls, _core_schema: core_schema.CoreSchema, handler: GetJsonSchemaHandler
     ) -> JsonSchemaValue:
-        # Use the same schema that would be used for `int`
-        return handler(core_schema.int_schema())
+        """Return JSON schema for `YarlURL`."""
+        return handler(core_schema.str_schema())
 
 
 # We now create an `Annotated` wrapper that we'll use as the annotation for fields on `BaseModel`s, etc.
 YarlURL = Annotated[URL, YarlURLTypePydanticAnnotation]
+"""A type for URL that allows it to be deserialized by Pydantic from a string."""

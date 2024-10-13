@@ -5,13 +5,14 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
-"""
-This package contains classes to work with the configuration of the NRP invenio client,
-which is stored in a JSON file on a file system, usually in .nrp/invenio-config.json.
+"""This package contains classes to work with the configuration of the NRP invenio client.
+
+This configuration is stored in a JSON file
+on a file system, usually in .nrp/invenio-config.json.
 
 Normally you'd not use the classes directly,
 but via the SyncClient or AsyncClient class
-from the invenio_nrp.client module
+from the invenio_nrp.client module.
 
 To get a configuration object, you can use the Config.from_file() method
 and either pass the path to the configuration file or let it default to ~/.nrp/invenio-config.json.

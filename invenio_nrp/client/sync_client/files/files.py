@@ -20,10 +20,11 @@
 # details.
 #
 """Representation of invenio files."""
+
 from enum import StrEnum
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Optional, Type
 
 from pydantic import fields
 
@@ -60,7 +61,7 @@ class FileLinks(RESTObjectLinks):
     commit: Optional[YarlURL] = None
     """Link to commit (finalize) uploading of the file."""
 
-    parts: Optional[List[MultipartUploadLinks]] = None
+    parts: Optional[list[MultipartUploadLinks]] = None
     """For multipart upload, links where to upload the part to."""
 
 
@@ -70,7 +71,7 @@ class File(RESTObject):
     key: str
     """Key(filename) of the file."""
 
-    metadata: Dict[str, Any]
+    metadata: dict[str, Any]
     """Metadata of the file, as defined in the model."""
 
     links: FileLinks
@@ -86,7 +87,7 @@ class FilesList[FileBase: File](RESTObject):
     enabled: bool
     """Whether the files are enabled on the record."""
 
-    entries: List[FileBase] = fields.Field(default_factory=list)
+    entries: list[FileBase] = fields.Field(default_factory=list)
     """List of files on the record."""
 
     def __getitem__(self, key: str) -> FileBase:
@@ -125,13 +126,12 @@ class FilesClient[FileBase: File]:
     def upload(
         self,
         key: str,
-        metadata: Dict[str, Any],
+        metadata: dict[str, Any],
         file: DataSource | str | Path,
         transfer_type: TransferType = TransferType.LOCAL,
         transfer_metadata: dict = None,
     ) -> FileBase:
-        """
-        Upload a file to the repository.
+        """Upload a file to the repository.
 
         :param key:                 the key (filename) of the file
         :param metadata:            metadata of the file, as defined in the model inside the repository

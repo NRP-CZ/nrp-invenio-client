@@ -5,6 +5,8 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
+"""Base types for REST communication."""
+
 from .base import JSONDateTime, Model, URLBearerToken
 from .info import ModelInfo, ModelInfoLinks, RepositoryInfo, RepositoryInfoLinks
 from .yarl_url import YarlURL

@@ -5,10 +5,13 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
+"""CLI commands for managing repositories."""
+
 import urllib
 import urllib.parse
+from functools import partial
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Generator, Optional
 
 import typer
 from rich import box
@@ -18,9 +21,11 @@ from typing_extensions import Annotated
 
 from invenio_nrp import Config, SyncClient
 from invenio_nrp.config.repository import RepositoryConfig
-from invenio_nrp.types import ModelInfo
 
-from .base import OutputFormat, format_output
+from .base import OutputFormat, OutputWriter, format_output
+
+if TYPE_CHECKING:
+    from invenio_nrp.types import ModelInfo
 
 
 def add_repository(
@@ -42,10 +47,8 @@ def add_repository(
     default: Annotated[
         bool, typer.Option(help="Set this repository as the default")
     ] = False,
-):
-    """
-    Add a new repository to the configuration.
-    """
+) -> None:
+    """Add a new repository to the configuration."""
     console = Console()
     console.print()
 
@@ -85,8 +88,8 @@ def add_repository(
 
         try:
             typer.launch(login_url)
-        except:
-            pass
+        except Exception as e:  # noqa
+            print("Failed to open the browser. Please open the URL above manually.")
 
         # wait until the token is created at /account/settings/applications/tokens/retrieve
         token = typer.prompt("\nPaste the token here").strip()
@@ -113,10 +116,8 @@ def add_repository(
 
 def remove_repository(
     alias: Annotated[str, typer.Argument(help="The alias of the repository")],
-):
-    """
-    Remove a repository from the configuration.
-    """
+) -> None:
+    """Remove a repository from the configuration."""
     console = Console()
     console.print()
     client = SyncClient()
@@ -128,10 +129,8 @@ def remove_repository(
 
 def select_repository(
     alias: Annotated[str, typer.Argument(help="The alias of the repository")],
-):
-    """
-    Select a default repository.
-    """
+) -> None:
+    """Select a default repository."""
     console = Console()
     console.print()
     config = Config.from_file()
@@ -153,33 +152,27 @@ def list_repositories(
         Optional[OutputFormat],
         typer.Option(help="The format of the output"),
     ] = None,
-):
-    """
-    List all repositories.
-    """
+) -> None:
+    """List all repositories."""
     console = Console()
     config = Config.from_file()
 
-    if output_format == OutputFormat.TABLE or output_format is None:
-        output_tables(config, console, verbose)
-    else:
-        if not verbose:
-            data = format_output(
-                output_format, [repo.alias for repo in config.repositories]
+    with OutputWriter(
+        output_file,
+        output_format,
+        console,
+        partial(output_tables, config=config, verbose=verbose),
+    ) as printer:
+        if verbose:
+            printer.output(
+                [dump_repo_configuration(repo) for repo in config.repositories]
             )
         else:
-            data = format_output(
-                output_format,
-                [dump_repo_configuration(repo) for repo in config.repositories],
-            )
-
-        if output_file:
-            output_file.write_text(data)
-        else:
-            console.print(data)
+            printer.output([repo.alias for repo in config.repositories])
 
 
-def dump_repo_configuration(repo):
+def dump_repo_configuration(repo: RepositoryConfig) -> dict:
+    """Dump the repository configuration into a json-compatible structure."""
     return {
         "alias": repo.alias,
         "url": str(repo.url),
@@ -187,11 +180,12 @@ def dump_repo_configuration(repo):
         "tls_verify": repo.verify_tls,
         "retry_count": repo.retry_count,
         "retry_after_seconds": repo.retry_after_seconds,
-        "info": repo.info.model_dump(),
+        "info": repo.info.model_dump(mode="json") if repo.info else None,
     }
 
 
-def output_tables(config, console, verbose):
+def output_tables(*, config: Config, verbose: bool, **kwargs: dict) -> Generator[Table]:
+    """Output the information about the repositories formatted as a table."""
     if not verbose:
         table = Table(title="Repositories", box=box.SIMPLE, title_justify="left")
         table.add_column("Alias", style="cyan")
@@ -203,13 +197,17 @@ def output_tables(config, console, verbose):
                 str(repo.url),
                 "✓" if repo == config.default_repository else "",
             )
-        console.print(table)
+        yield table
     else:
         for repo in config.repositories:
-            output_repository_info_table(config, console, repo)
+            yield from output_repository_info_table(config, repo)
 
 
-def output_repository_info_table(config, console, repo):
+# TODO: should return iterable of tables ???
+def output_repository_info_table(
+    config: Config, repo: RepositoryConfig
+) -> Generator[Table]:
+    """Output the information about a repository formatted as a table."""
     table = Table(
         title=f"Repository '{repo.alias}'",
         box=box.SIMPLE,
@@ -232,7 +230,7 @@ def output_repository_info_table(config, console, repo):
         table.add_row("Transfers", ", ".join(repo.info.transfers))
         table.add_row("Records url", str(repo.info.links.records))
         table.add_row("User records url", str(repo.info.links.user_records))
-    console.print(table)
+    yield table
 
     if repo.info:
         model_info: ModelInfo
@@ -256,7 +254,7 @@ def output_repository_info_table(config, console, repo):
             table.add_row("Model Schema", str(model_info.links.model))
             table.add_row("Published Records URL", str(model_info.links.published))
             table.add_row("User Records URL", str(model_info.links.user_records))
-            console.print(table)
+            yield table
 
 
 def describe_repository(
@@ -272,10 +270,8 @@ def describe_repository(
         Optional[OutputFormat],
         typer.Option(help="The format of the output"),
     ] = None,
-):
-    """
-    Get information about a repository.
-    """
+) -> None:
+    """Get information about a repository."""
     console = Console()
     config = Config.from_file()
     client = SyncClient(alias=alias, config=config)

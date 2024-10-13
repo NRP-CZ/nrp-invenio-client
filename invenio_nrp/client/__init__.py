@@ -5,6 +5,8 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
+"""Clients (async/sync) for the NRP Invenio API."""
+
 from .async_client import AsyncClient
 from .sync_client import SyncClient
 

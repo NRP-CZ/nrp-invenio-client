@@ -31,8 +31,7 @@ log = logging.getLogger("invenio_nrp.sync_client.connection")
 
 @contextlib.contextmanager
 def _cast_error():
-    """
-    Catch all errors and cast them to Repository*Error.
+    """Catch all errors and cast them to Repository*Error.
     :return:
     """
     try:
@@ -48,7 +47,7 @@ def raise_for_invenio_status(response: requests.Response) -> None:
         payload = response.text
         try:
             payload = json.loads(payload)
-        except ValueError as e:
+        except ValueError:
             payload = {
                 "status": response.status_code,
                 "reason": payload,
@@ -75,8 +74,7 @@ class Connection:
 
     @contextlib.contextmanager
     def _client(self, idempotent=False):
-        """
-        Create a new session with the repository and configure it with the token.
+        """Create a new session with the repository and configure it with the token.
         :return: A new http client
         """
         """
@@ -108,9 +106,7 @@ class Connection:
     def repository_config(self):
         return self._repository_config
 
-    def get[
-        T
-    ](
+    def get[T](
         self,
         *,
         url: object,
@@ -119,8 +115,7 @@ class Connection:
         result_context: object = None,
         **kwargs: object,
     ) -> T:
-        """
-        Perform a GET request to the repository.
+        """Perform a GET request to the repository.
 
         :param url:
         :param idempotent:
@@ -138,9 +133,7 @@ class Connection:
                 with client.get(url, **kwargs) as response:
                     return self._get_call_result(response, result_class, result_context)
 
-    def post[
-        T
-    ](
+    def post[T](
         self,
         *,
         url,
@@ -151,8 +144,7 @@ class Connection:
         result_context=None,
         **kwargs,
     ) -> T:
-        """
-        Perform a POST request to the repository.
+        """Perform a POST request to the repository.
 
         :param url:
         :param json:
@@ -175,9 +167,7 @@ class Connection:
                 with client.post(url, json=json, data=data, **kwargs) as response:
                     return self._get_call_result(response, result_class, result_context)
 
-    def put[
-        T
-    ](
+    def put[T](
         self,
         *,
         url,
@@ -187,8 +177,7 @@ class Connection:
         result_context=None,
         **kwargs,
     ) -> T:
-        """
-        Perform a PUT request to the repository.
+        """Perform a PUT request to the repository.
 
         :param url:
         :param json:
@@ -211,8 +200,7 @@ class Connection:
                     return self._get_call_result(response, result_class, result_context)
 
     def put_stream(self, *, url, file: RawIOBase, **kwargs):
-        """
-        Perform a PUT request to the repository with a file.
+        """Perform a PUT request to the repository with a file.
 
         :param url:
         :param file:
@@ -230,8 +218,7 @@ class Connection:
                     return response
 
     def delete(self, *, url, idempotent=False, **kwargs):
-        """
-        Perform a DELETE request to the repository.
+        """Perform a DELETE request to the repository.
 
         :param url:
         :param idempotent:
@@ -247,8 +234,7 @@ class Connection:
                     return self._get_call_result(response, None, None)
 
     def _get_call_result[T](self, response, result_class: Type[T], result_context):
-        """
-        Get the result from the response.
+        """Get the result from the response.
 
         :param response:
         :param result_class:

@@ -5,11 +5,13 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
+"""User-wide configuration of repositories, usually stored in ~/.nrp/invenio-config.json."""
+
 from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import List, Optional, Self
+from typing import Optional, Self
 
 from pydantic import BaseModel, Field
 from yarl import URL
@@ -19,11 +21,9 @@ from .variables import Variables
 
 
 class Config(BaseModel):
-    """
-    The configuration of the NRP client as stored in the configuration file.
-    """
+    """The configuration of the NRP client as stored in the configuration file."""
 
-    repositories: List[RepositoryConfig] = Field(default_factory=list)
+    repositories: list[RepositoryConfig] = Field(default_factory=list)
     """Locally known repositories."""
 
     default_alias: Optional[str] = None
@@ -38,7 +38,7 @@ class Config(BaseModel):
     _config_file_path: Optional[Path] = None
     """The path from which the config file was loaded."""
 
-    class Config:
+    class Config:  # noqa
         extra = "forbid"
 
     @classmethod
@@ -59,7 +59,7 @@ class Config(BaseModel):
         ret._config_file_path = config_file_path
         return ret
 
-    def save(self, path: Optional[Path] = None):
+    def save(self, path: Optional[Path] = None) -> None:
         """Save the configuration to a file, creating parent directory if needed."""
         if path:
             self._config_file_path = path
@@ -76,6 +76,7 @@ class Config(BaseModel):
     #
 
     def get_repository(self, alias: str) -> RepositoryConfig:
+        """Get a repository by its alias."""
         for repo in self.repositories:
             if repo.alias == alias:
                 return repo
@@ -83,30 +84,34 @@ class Config(BaseModel):
 
     @property
     def default_repository(self) -> RepositoryConfig:
+        """Get the default repository."""
         return self.get_repository(self.default_alias)
 
-    def add_repository(self, repository: RepositoryConfig):
+    def add_repository(self, repository: RepositoryConfig) -> None:
+        """Add a repository to the configuration."""
         self.repositories.append(repository)
 
-    def remove_repository(self, repository: RepositoryConfig | str):
+    def remove_repository(self, repository: RepositoryConfig | str) -> None:
+        """Remove a repository from the configuration."""
         if isinstance(repository, str):
             repository = self.get_repository(repository)
         self.repositories.remove(repository)
 
-    def set_default_repository(self, alias: str):
+    def set_default_repository(self, alias: str) -> None:
+        """Set the default repository by its alias."""
         try:
             next(repo for repo in self.repositories if repo.alias == alias)
         except StopIteration:
-            raise ValueError(f"Repository with alias '{alias}' not found")
+            raise ValueError(f"Repository with alias '{alias}' not found") from None
         self.default_alias = alias
 
-    def get_repository_from_url(self, record_url: str | URL):
+    def get_repository_from_url(self, record_url: str | URL) -> RepositoryConfig:
+        """Get the repository configuration for a given record URL."""
         record_url = URL(record_url)
         repository_root_url = record_url.with_path("/")
         for repository in self.repositories:
             if repository.url == repository_root_url:
                 return repository
-        # use info endpoint to find the repository
         return RepositoryConfig(
             alias=str(repository_root_url),
             url=repository_root_url,
@@ -114,6 +119,7 @@ class Config(BaseModel):
         )
 
     def load_variables(self) -> Variables:
+        """Load the global variables from the configuration file."""
         if self.per_directory_variables:
             return Variables.from_file(Path.cwd() / ".nrp" / "variables.json")
         return Variables.from_file()

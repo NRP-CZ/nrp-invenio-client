@@ -5,11 +5,7 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
-"""
-Python module with high-level functions
-for interacting with the NRP repositories
-and plain invenio RDM.
-"""
+"""Python module with high-level functions for interacting with the NRP repositories and plain invenio RDM."""
 
 
 # from invenio_nrp.client.async_client import AsyncClient
@@ -21,12 +17,12 @@ and plain invenio RDM.
 #     RecordBase, RequestBase
 # ](
 #     *,
-#     record_urls: Optional[List[str | URL]] = None,
-#     record_dois: Optional[List[str]] = None,
+#     record_urls: Optional[list[str | URL]] = None,
+#     record_dois: Optional[list[str]] = None,
 #     record_ids=None,
 #     client=None,
 #     alias=None,
-# ) -> List[Union[RecordBase, AsyncRecordMixin[RecordBase, RequestBase]]]:
+# ) -> list[Union[RecordBase, AsyncRecordMixin[RecordBase, RequestBase]]]:
 #     """
 #     Get records from the repository in the fastest manner, using parallelism.
 #
@@ -42,12 +38,12 @@ and plain invenio RDM.
 #
 # def get_records_sync(
 #     *,
-#     record_urls: Optional[List[str | URL]] = None,
-#     record_dois: Optional[List[str]] = None,
+#     record_urls: Optional[list[str | URL]] = None,
+#     record_dois: Optional[list[str]] = None,
 #     record_ids=None,
 #     client=None,
 #     alias=None,
-# ):  # TODO: -> List[SyncRecord]:
+# ):  # TODO: -> list[SyncRecord]:
 #     """
 #     Get records from the repository.
 #
@@ -76,15 +72,15 @@ and plain invenio RDM.
 # class UploadedRecordFile:
 #     record: Union[RecordBase, AsyncRecordMixin[RecordBase, RequestBase]]
 #     key: str
-#     metadata: Dict[str, any] = dataclasses.field(default_factory=dict)
-#     transfer_metadata: Dict[str, any] = dataclasses.field(default_factory=dict)
+#     metadata: dict[str, any] = dataclasses.field(default_factory=dict)
+#     transfer_metadata: dict[str, any] = dataclasses.field(default_factory=dict)
 #     file_size: Optional[int] = None
 #     file_path: Optional[str] = None
 #     file_content: Optional[bytes | AsyncReadableStream] = None
 #     file_factory: Optional[FileFactory] = None
 #
 #
-# async def upload_files(*files: List[UploadedRecordFile], replace=True):
+# async def upload_files(*files: list[UploadedRecordFile], replace=True):
 #     """
 #     Upload files to the repository, using parallel and multipart upload if supported by the repository.
 #

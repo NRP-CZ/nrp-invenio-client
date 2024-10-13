@@ -5,22 +5,24 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
+"""Variables mainly for storing record urls."""
+
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Iterable, Optional
 
 from pydantic import BaseModel, Field
 
 
 class Variables(BaseModel):
-    """
-    Variables for the commandline tools.
-    """
+    """Variables for the commandline tools."""
 
-    variables: Dict[str, List[str]] = Field(default_factory=dict)
+    variables: dict[str, list[str]] = Field(default_factory=dict)
+    """Internal dictionary of variables."""
 
     _config_file_path: Optional[Path] = None
+    """Path to the configuration file from which the variables have been loaded."""
 
-    class Config:
+    class Config:  # noqa
         extra = "forbid"
 
     @classmethod
@@ -38,7 +40,7 @@ class Variables(BaseModel):
         ret._config_file_path = config_file_path
         return ret
 
-    def save(self, path: Optional[Path] = None):
+    def save(self, path: Optional[Path] = None) -> None:
         """Save the configuration to a file, creating parent directory if needed."""
         if path:
             self._config_file_path = path
@@ -50,20 +52,27 @@ class Variables(BaseModel):
             encoding="utf-8",
         )
 
-    def __getitem__(self, key: str) -> List[str]:
+    def __getitem__(self, key: str) -> list[str]:
+        """Get the value of a variable, raising KeyError if the variable has not been found."""
         try:
             return self.variables[key]
-        except KeyError:
-            raise KeyError(f"Variable {key} not found at {self._config_file_path}")
+        except KeyError as err:
+            raise KeyError(
+                f"Variable {key} not found at {self._config_file_path}"
+            ) from err
 
-    def __setitem__(self, key: str, value: List[str]):
+    def __setitem__(self, key: str, value: list[str]):
+        """Set the value of a variable."""
         self.variables[key] = value
 
     def __delitem__(self, key: str):
+        """Delete a variable."""
         del self.variables[key]
 
-    def get(self, key: str) -> Optional[List[str]]:
+    def get(self, key: str) -> Optional[list[str]]:
+        """Get the value of a variable, returning None if the variable has not been found."""
         return self.variables.get(key)
 
-    def items(self):
+    def items(self) -> Iterable[tuple[str, list[str]]]:
+        """Return the variables as an iterable of (key, value)."""
         return self.variables.items()

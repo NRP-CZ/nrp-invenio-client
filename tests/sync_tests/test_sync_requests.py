@@ -70,7 +70,6 @@ def test_delete_request(local_client, local_records, draft_record):
 
 
 def test_list_requests(local_client: SyncClient, draft_record):
-
     record_requests = draft_record.requests()
     all_requests = local_client.requests()
 
@@ -117,7 +116,6 @@ def test_list_requests(local_client: SyncClient, draft_record):
 
 
 def test_custom_request_class(nrp_repository_config):
-
     class MyRequest(Request):
         pass
 

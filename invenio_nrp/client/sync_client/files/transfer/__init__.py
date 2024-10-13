@@ -20,6 +20,7 @@
 # details.
 #
 """Different transfers to the invenio repository."""
+
 from .base import Transfer
 from .registry import transfer_registry
 

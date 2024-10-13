@@ -5,8 +5,7 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
-"""
-Asynchronous client for the NRP Invenio repository. Provides the AsyncClient class
+"""Asynchronous client for the NRP Invenio repository. Provides the AsyncClient class
 that allows to interact with the NRP Invenio repository asynchronously inside an
 asyncio event loop.
 
@@ -27,6 +26,7 @@ my_records = client.user_records()
 async for record in my_records.search():
     print(record.id)
 """
+
 from .base import AsyncClient
 
 __all__ = ("AsyncClient",)

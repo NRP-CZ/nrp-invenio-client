@@ -6,6 +6,7 @@
 # details.
 #
 """File data source"""
+
 from pathlib import Path
 
 import magic
@@ -18,8 +19,7 @@ class FileDataSource(DataSource):
     """A data source that reads data from a file."""
 
     def __init__(self, file_name: Path | str):
-        """
-        Initialize the data source.
+        """Initialize the data source.
 
         :param file_name: The name of the file to read from, must exist on the filesystem
         """
