@@ -5,8 +5,9 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
+"""Record client."""
+
 import copy
-from types import SimpleNamespace
 from typing import Any, Dict, Optional, Protocol, Self
 
 from pydantic import field_validator, fields
@@ -14,48 +15,58 @@ from yarl import URL
 
 from ...types import Model, YarlURL
 from .connection import Connection
-from .files import File, FilesClient
+from .files import FilesClient
 from .record_requests import RecordRequestsClient
-from .request_types import RequestType
-from .requests import Request
 from .rest import BaseRecord, RESTList, RESTObjectLinks
 
 
 class RecordLinks(RESTObjectLinks):
+    """Links of a record."""
+
     # TODO: add rest of the links here so that code editors can autocomplete
     pass
 
 
 class FilesEnabled(Model):
+    """Files enabled marker."""
+
     enabled: bool
 
 
 class Record(BaseRecord):
+    """Record in the repository."""
+
     links: RecordLinks
+    """Links of the record."""
     metadata: Optional[dict[str, Any]] = None
+    """Metadata of the record."""
     files_: Optional[FilesEnabled] = fields.Field(alias="files")
+    """Files enabled marker."""
 
     @field_validator("files_", mode="before")
     @classmethod
-    def transform(cls, raw: Any) -> Dict:   # noqa: ANN401
+    def transform(cls, raw: Any) -> Dict:  # noqa: ANN401
+        """Transform the raw data, zenodo serialization."""
         if isinstance(raw, list):
             # zenodo serialization
             return {"enabled": len(raw) > 0}
         return raw
 
-    async def delete(self):
+    async def delete(self) -> None:
+        """Delete the record."""
         return await self._connection.delete(
             url=self.links.self_, headers=self._etag_headers()
         )
 
-    async def update(self, force_etag=False) -> Self:
+    async def update(self, force_etag: bool = False) -> Self:
+        """Update the record."""
         headers = {}
         if not force_etag:
             headers.update(self._etag_headers())
 
         ret = await self._connection.put(
             url=self.links.self_,
-            data=self.model_dump_json(),    # type: ignore
+            data=self.model_dump_json(),  # type: ignore
             headers={
                 **headers,
                 "Content-Type": "application/json",
@@ -67,44 +78,57 @@ class Record(BaseRecord):
     def requests(
         self,
     ) -> RecordRequestsClient:
-        return RecordRequestsClient(self._connection, self.links.requests,
-                                    self.links.applicable_requests)
+        """Get the requests client for the record."""
+        return RecordRequestsClient(
+            self._connection, self.links.requests, self.links.applicable_requests
+        )
 
     def files(self) -> FilesClient:
-        return FilesClient(
-            self._connection, self.links.files
-        )
+        """Get the files client for the record."""
+        return FilesClient(self._connection, self.links.files)
 
 
 class RecordList(RESTList[Record]):
+    """List of records."""
+
     sortBy: Optional[str]
+    """Sort by field."""
     aggregations: Optional[Any]
+    """Aggregations."""
     hits: list[Record]
+    """List of records."""
 
 
 class CreateURL(Protocol):
-    def __call__(self) -> YarlURL: ...
+    """Callable that returns the URL for creating a record."""
+
+    def __call__(self) -> YarlURL: ...  # noqa
 
 
 class ReadURL(Protocol):
-    def __call__(self, record_id: str) -> YarlURL: ...
+    """Callable that returns the URL for reading a record."""
+
+    def __call__(self, record_id: str) -> YarlURL: ...  # noqa
 
 
 class SearchURL(Protocol):
-    def __call__(self) -> YarlURL: ...
+    """Callable that returns the URL for searching records."""
+
+    def __call__(self) -> YarlURL: ...  # noqa
 
 
 class RecordClient:
+    """Client for records in the repository."""
+
     def __init__(
         self,
         connection: Connection,
-        model: str,
         create_url: CreateURL,
         read_url: ReadURL,
         search_url: SearchURL,
     ):
+        """Initialize the client."""
         self._connection = connection
-        self._model = model
         self._create_url = create_url
         self._read_url = read_url
         self._search_url = search_url
@@ -112,8 +136,8 @@ class RecordClient:
     async def create_record(
         self,
         data: dict,
-        community: str|None = None,
-        workflow: str|None = None,
+        community: str | None = None,
+        workflow: str | None = None,
         idempotent: bool = False,
         files_enabled: bool = True,
     ) -> Record:
@@ -135,10 +159,7 @@ class RecordClient:
 
         data = {**data}
         if community or workflow:
-            if "parent" in data:
-                parent = copy.deepcopy(data.pop("parent"))
-            else:
-                parent = {}
+            parent = copy.deepcopy(data.pop("parent")) if "parent" in data else {}
             data["parent"] = parent
             if community:
                 assert (
@@ -161,7 +182,7 @@ class RecordClient:
         self,
         *,
         record_id: str,
-        expand=False,
+        expand: bool = False,
     ) -> Record:
         """Read a record from the repository. Please provide either record_id or record_url, not both.
 
@@ -183,8 +204,9 @@ class RecordClient:
         q: Optional[str] = None,
         page: Optional[int] = None,
         size: Optional[int] = None,
-        **facets,
+        **facets: str,
     ) -> RecordList:
+        """Search for records in the repository."""
         search_url: YarlURL = self._search_url()
         query = {**facets}
         if q:

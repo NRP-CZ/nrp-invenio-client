@@ -34,7 +34,7 @@ class Transfer(Protocol):
         initialized_upload: File,
         file: DataSource,
     ) -> None:
-        """Upload the file
+        """Upload the file.
 
         :param connection:              connection to the repository
         :param initialized_upload:      initialized upload as returned from the repository
@@ -43,7 +43,9 @@ class Transfer(Protocol):
         ...
 
     async def get_commit_payload(self, initialized_upload: File) -> dict:
-        """Finalize the successful upload. There is no method to discard an unsuccessful upload,
+        """Finalize the successful upload.
+
+        There is no method to discard an unsuccessful upload,
         just use the "delete" operation on the failed file.
 
         :param initialized_upload:      initialized upload as returned from the repository

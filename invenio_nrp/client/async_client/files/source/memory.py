@@ -6,6 +6,7 @@
 # details.
 #
 """Memory-based data source."""
+
 import contextlib
 from typing import AsyncIterator
 
@@ -16,6 +17,7 @@ from .memory_reader import MemoryReader
 
 class MemoryDataSource(DataSource):
     """A data source that reads data from memory."""
+
     has_range_support = True
 
     def __init__(self, data: bytes, content_type: str):
@@ -29,14 +31,18 @@ class MemoryDataSource(DataSource):
 
     # TODO: how to correctly type this?
     @contextlib.asynccontextmanager
-    async def open(self, offset: int = 0) -> AsyncIterator[DataReader]: # type: ignore
+    async def open(self, offset: int = 0) -> AsyncIterator[DataReader]:  # type: ignore
+        """Open the data source for reading."""
         yield MemoryReader(self._data[offset:])  # noqa ignore type
 
     async def size(self) -> int:
+        """Return the size of the data."""
         return len(self._data)
 
     async def content_type(self) -> str:
+        """Return the content type of the data."""
         return self._content_type
 
     async def close(self) -> None:
+        """Close the data source."""
         pass

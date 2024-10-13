@@ -5,7 +5,8 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
-"""Bearer authentication support for aiohttp"""
+"""Bearer authentication support for aiohttp."""
+
 import dataclasses
 from typing import Optional
 
@@ -35,12 +36,11 @@ class AuthenticatedClientRequest(ClientRequest):
     def update_auth(
         self, auth: Optional[Authentication], trust_env: bool = False
     ) -> None:
-        """Overrides the authentication in the request to allow non-basic auth methods."""
+        """Override the authentication in the request to allow non-basic auth methods."""
         if not auth or not isinstance(auth, Authentication):
             return super().update_auth(auth, trust_env)
 
         auth.apply(self)
-
 
 
 @dataclasses.dataclass
@@ -64,7 +64,7 @@ class BearerAuthentication(Authentication):
     """Bearer authentication class that adds the Bearer token to the request."""
 
     def __init__(self, tokens: list[BearerTokenForHost]):
-        """Creates a new BearerAuthentication instance.
+        """Create a new BearerAuthentication instance.
 
         :param tokens: list of (host url, token) pairs. The token will be added to the request if the host url matches
             (including the scheme).

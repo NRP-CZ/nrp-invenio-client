@@ -7,7 +7,7 @@
 #
 """Implementation of 429 retry strategy for aiohttp."""
 
-from typing import Optional
+from typing import Any, Optional
 
 from aiohttp import ClientResponse
 from aiohttp_retry import ExponentialRetry
@@ -16,7 +16,7 @@ from aiohttp_retry import ExponentialRetry
 class ServerAssistedRetry(ExponentialRetry):
     """A retry strategy that uses the Retry-After header for 429 responses."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):  # noqa: ANN401
         """Initialize the retry strategy."""
         kwargs.setdefault("factor", 1.5)
         if "max_timeout" not in kwargs:

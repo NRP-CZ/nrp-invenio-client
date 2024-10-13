@@ -5,16 +5,19 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
+"""Synchronous low-level connection."""
+
 import contextlib
 import json
 import logging
 from io import IOBase
-from typing import Optional, Type, overload
+from typing import Any, Generator, Optional, Type, overload
 
 import requests
-from pydantic import ValidationError, BaseModel
+from pydantic import BaseModel, ValidationError
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
+from yarl import URL
 
 from invenio_nrp.client.async_client.connection.auth import BearerTokenForHost
 from invenio_nrp.client.errors import (
@@ -30,8 +33,9 @@ log = logging.getLogger("invenio_nrp.sync_client.connection")
 
 
 @contextlib.contextmanager
-def _cast_error():
+def _cast_error() -> Generator[None]:
     """Catch all errors and cast them to Repository*Error.
+
     :return:
     """
     try:
@@ -43,6 +47,7 @@ def _cast_error():
 
 
 def raise_for_invenio_status(response: requests.Response) -> None:
+    """Raise an exception if the response is not successful."""
     if not response.ok:
         payload = response.text
         try:
@@ -61,7 +66,10 @@ def raise_for_invenio_status(response: requests.Response) -> None:
 
 
 class Connection:
+    """Low-level synchronous connection to the repository."""
+
     def __init__(self, config: Config, repository_config: RepositoryConfig):
+        """Initialize the connection."""
         self._config = config
         self._repository_config = repository_config
 
@@ -73,8 +81,9 @@ class Connection:
         self.auth = BearerAuthentication(tokens)
 
     @contextlib.contextmanager
-    def _client(self, idempotent=False):
+    def _client(self, idempotent: bool = False) -> Generator[requests.Session]:
         """Create a new session with the repository and configure it with the token.
+
         :return: A new http client
         """
         """
@@ -99,21 +108,23 @@ class Connection:
         yield session
 
     @property
-    def config(self):
+    def config(self) -> Config:
+        """Configuration of client."""
         return self._config
 
     @property
-    def repository_config(self):
+    def repository_config(self) -> RepositoryConfig:
+        """Configuration of the repository."""
         return self._repository_config
 
     def get[T](
         self,
         *,
-        url: object,
+        url: URL,
         idempotent: bool = True,
         result_class: Type[T],
-        result_context: object = None,
-        **kwargs: object,
+        result_context: dict | None = None,
+        **kwargs: Any,  # noqa: ANN401
     ) -> T:
         """Perform a GET request to the repository.
 
@@ -128,21 +139,23 @@ class Connection:
         :raises RepositoryServerError: if the request fails due to server error (HTTP 5xx)
         :raises RepositoryCommunicationError: if the request fails due to network error
         """
-        with self._client(idempotent=idempotent) as client:
-            with _cast_error():
-                with client.get(url, **kwargs) as response:
-                    return self._get_call_result(response, result_class, result_context)
+        with (
+            self._client(idempotent=idempotent) as client,
+            _cast_error(),
+            client.get(url, **kwargs) as response,
+        ):
+            return self._get_call_result(response, result_class, result_context)
 
     def post[T](
         self,
         *,
-        url,
-        json=None,
-        data=None,
-        idempotent=False,
+        url: URL,
+        json: dict | list | None = None,
+        data: bytes | None = None,
+        idempotent: bool = False,
         result_class: Type[T],
-        result_context=None,
-        **kwargs,
+        result_context: dict | None = None,
+        **kwargs: Any,  # noqa: ANN401
     ) -> T:
         """Perform a POST request to the repository.
 
@@ -162,20 +175,22 @@ class Connection:
         assert (
             json is not None or data is not None
         ), "Either json or data must be provided"
-        with self._client(idempotent=idempotent) as client:
-            with _cast_error():
-                with client.post(url, json=json, data=data, **kwargs) as response:
-                    return self._get_call_result(response, result_class, result_context)
+        with (
+            self._client(idempotent=idempotent) as client,
+            _cast_error(),
+            client.post(url, json=json, data=data, **kwargs) as response,
+        ):
+            return self._get_call_result(response, result_class, result_context)
 
     def put[T](
         self,
         *,
-        url,
-        json=None,
-        data=None,
+        url: URL,
+        json: dict | list | None = None,
+        data: bytes | None = None,
         result_class: Type[T],
-        result_context=None,
-        **kwargs,
+        result_context: dict | None = None,
+        **kwargs: Any,  # noqa: ANN401
     ) -> T:
         """Perform a PUT request to the repository.
 
@@ -194,12 +209,20 @@ class Connection:
         assert (
             json is not None or data is not None
         ), "Either json or data must be provided"
-        with self._client(idempotent=True) as client:
-            with _cast_error():
-                with client.put(url, json=json, data=data, **kwargs) as response:
-                    return self._get_call_result(response, result_class, result_context)
+        with (
+            self._client(idempotent=True) as client,
+            _cast_error(),
+            client.put(url, json=json, data=data, **kwargs) as response,
+        ):
+            return self._get_call_result(response, result_class, result_context)
 
-    def put_stream(self, *, url, file: IOBase, **kwargs):
+    def put_stream(
+        self,
+        *,
+        url: URL,
+        file: IOBase,
+        **kwargs: Any,  # noqa: ANN401
+    ) -> requests.Response:
         """Perform a PUT request to the repository with a file.
 
         :param url:
@@ -211,13 +234,21 @@ class Connection:
         :raises RepositoryServerError: if the request fails due to server error (HTTP 5xx)
         :raises RepositoryCommunicationError: if the request fails due to network
         """
-        with self._client(idempotent=True) as client:
-            with _cast_error():
-                with client.put(url, data=file, **kwargs) as response:
-                    raise_for_invenio_status(response)
-                    return response
+        with (
+            self._client(idempotent=True) as client,
+            _cast_error(),
+            client.put(url, data=file, **kwargs) as response,
+        ):
+            raise_for_invenio_status(response)
+            return response
 
-    def delete(self, *, url, idempotent=False, **kwargs):
+    def delete(
+        self,
+        *,
+        url: URL,
+        idempotent: bool = False,
+        **kwargs: Any,  # noqa: ANN401
+    ) -> None:
         """Perform a DELETE request to the repository.
 
         :param url:
@@ -228,21 +259,35 @@ class Connection:
         :raises RepositoryServerError: if the request fails due to server error (HTTP 5xx)
         :raises RepositoryCommunicationError: if the request fails due to network
         """
-        with self._client(idempotent=idempotent) as client:
-            with _cast_error():
-                with client.delete(url, **kwargs) as response:
-                    return self._get_call_result(response, None, None)
+        with (
+            self._client(idempotent=idempotent) as client,
+            _cast_error(),
+            client.delete(url, **kwargs) as response,
+        ):
+            return self._get_call_result(response, None, None)
 
     @overload
-    def _get_call_result(self, response, result_class: None, result_context) -> None:
-        ...
+    def _get_call_result(
+        self,
+        response: requests.Response,
+        result_class: None,
+        result_context: dict | None,
+    ) -> None: ...
 
     @overload
-    def _get_call_result[T: BaseModel](self, response, result_class: Type[T], result_context) -> T:
-        ...
+    def _get_call_result[T: BaseModel](
+        self,
+        response: requests.Response,
+        result_class: Type[T],
+        result_context: dict | None,
+    ) -> T: ...
 
-
-    def _get_call_result[T: BaseModel](self, response, result_class: Type[T] | None, result_context) -> T | None:
+    def _get_call_result[T: BaseModel](
+        self,
+        response: requests.Response,
+        result_class: Type[T] | None,
+        result_context: dict | None,
+    ) -> T | None:
         """Get the result from the response.
 
         :param response:

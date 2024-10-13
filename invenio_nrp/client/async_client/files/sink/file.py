@@ -9,7 +9,7 @@
 
 import contextlib
 from pathlib import Path
-from typing import AsyncContextManager, AsyncIterator
+from typing import AsyncIterator
 
 from ..os import DataWriter, open_file
 from .base import DataSink, SinkState
@@ -20,6 +20,7 @@ class FileSink(DataSink):
 
     def __init__(self, fpath: Path):
         """Initialize the sink.
+
         :param fpath: The path to the file where the data will be written.
         """
         self._fpath = fpath
@@ -27,12 +28,14 @@ class FileSink(DataSink):
         self._file: DataWriter | None = None
 
     async def allocate(self, size: int) -> None:
+        """Allocate space for the sink."""
         self._file = await open_file(self._fpath, mode="wb")
         await self._file.truncate(size)
         self._state = SinkState.ALLOCATED
 
     @contextlib.asynccontextmanager
-    async def open_chunk(self, offset: int = 0) -> AsyncIterator[DataWriter]:   # type: ignore
+    async def open_chunk(self, offset: int = 0) -> AsyncIterator[DataWriter]:  # type: ignore
+        """Open a chunk of the sink for writing."""
         if self._state != SinkState.ALLOCATED:
             raise RuntimeError("Sink not allocated")
 
@@ -42,11 +45,10 @@ class FileSink(DataSink):
         await chunk.close()
 
     async def close(self) -> None:
+        """Close the sink."""
         if self._file is not None:
-            try:
+            with contextlib.suppress(Exception):
                 await self._file.close()
-            except:  # noqa just catch everything here
-                pass
         self._file = None
 
         self._state = SinkState.CLOSED
@@ -57,4 +59,5 @@ class FileSink(DataSink):
         return self._state
 
     def __repr__(self):
+        """Return a string representation of the sink."""
         return f"<{self.__class__.__name__} {self._fpath} {self._state}>"

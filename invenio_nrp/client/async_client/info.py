@@ -6,15 +6,17 @@
 # details.
 #
 """Client for the .well-known/repository endpoint."""
+
 from typing import cast
 
 from pydantic import RootModel
 
 from invenio_nrp.config import RepositoryConfig
 from invenio_nrp.types import RepositoryInfo
-from invenio_nrp.types.info import ModelInfo, RepositoryInfoLinks
+from invenio_nrp.types.info import ModelInfo
 
 from ..errors import RepositoryClientError, RepositoryCommunicationError
+from ..rdm import _make_rdm_info
 from .connection import Connection
 
 
@@ -26,10 +28,11 @@ class AsyncInfoClient:
         repository_config: RepositoryConfig,
         connection: Connection,
     ):
+        """Initialize the client."""
         self._repository_config = repository_config
         self._connection = connection
 
-    async def info(self, refresh=False) -> RepositoryInfo:
+    async def info(self, refresh: bool = False) -> RepositoryInfo:
         """Retrieve info endpoint from the repository.
 
         :return: The parsed content of the info endpoint
@@ -61,24 +64,6 @@ class AsyncInfoClient:
 
         except (RepositoryClientError, RepositoryCommunicationError):
             # not a NRP based repository, suppose that it is plain invenio rdm
-            self._repository_config.info = self._make_rdm_info()
+            self._repository_config.info = _make_rdm_info(self._repository_config.url)
 
         return cast(RepositoryInfo, self._repository_config.info)
-
-    def _make_rdm_info(self):
-        """If repository does not provide the info endpoint, we assume it is a plain invenio rdm."""
-        return RepositoryInfo(
-            name="RDM repository",
-            description="",
-            version="unknown",
-            invenio_version="unknown",
-            transfers=[
-                "local-transfer",
-            ],
-            links=RepositoryInfoLinks(
-                records=self._repository_config.url / "api" / "records/",
-                user_records=self._repository_config.url / "api" / "user" / "records/",
-                requests=self._repository_config.url / "api" / "requests/",
-            ),
-            models={},
-        )

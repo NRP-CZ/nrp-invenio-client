@@ -7,7 +7,6 @@
 #
 """Types of requests that the user can apply for."""
 
-from types import SimpleNamespace
 from typing import Optional
 
 from ...types import Model, YarlURL
@@ -30,7 +29,9 @@ class RequestTypeLinks(Model):
 
 
 class RequestType(RESTObject):
-    """A type of request that the user can apply for. An example might be a request for access to a dataset,
+    """A type of request that the user can apply for.
+
+    An example might be a request for access to a dataset,
     publish draft request, assign doi request, ...
     """
 
@@ -40,7 +41,7 @@ class RequestType(RESTObject):
     links: RequestTypeLinks
     """Links on the request type object."""
 
-    async def create(self, payload, submit=False) -> Request:
+    async def create(self, payload: dict, submit: bool = False) -> Request:
         """Create a new request of this type."""
         request: Request = await self._connection.post(
             url=self.links.actions.create,
@@ -53,13 +54,13 @@ class RequestType(RESTObject):
 
 
 class RequestTypeList(RESTList[RequestType]):
-    """A list of request types as returned from the API"""
+    """A list of request types as returned from the API."""
 
     hits: list[RequestType]
     """Internal list of request types"""
 
-    def __getitem__(self, type_id) -> RequestType:
-        """Returns a request type by its type_id
+    def __getitem__(self, type_id: str) -> RequestType:
+        """Return a request type by its type_id.
 
         :param type_id:     type_id, stays stable regardless of server version
         :return:            request type or None if not found
@@ -69,15 +70,18 @@ class RequestTypeList(RESTList[RequestType]):
                 return hit
         raise KeyError(f"Request type {type_id} not found")
 
-    def keys(self):
+    def keys(self) -> set[str]:
         """Return all type_ids of the request types in this list.
 
         :return: a set of type_ids
         """
         return {hit.type_id for hit in self.hits}
 
-    def __getattr__(self, item):
-        """Shortcut to be able to write request_types.publish_draft instead of request_types["publish_draft"]"""
-        if item in self.keys():
-            return self[item]
-        return super().__getattr__(item)
+    def __getattr__(self, type_id: str) -> RequestType:
+        """Return a request type by its type_id.
+
+        Shortcut to be able to write request_types.publish_draft instead of request_types["publish_draft"]
+        """
+        if type_id in self.keys():
+            return self[type_id]
+        return super().__getattr__(type_id)

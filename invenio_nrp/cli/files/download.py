@@ -90,4 +90,4 @@ async def download_files(
                 if file_output and file_output.parent:
                     file_output.parent.mkdir(parents=True, exist_ok=True)
 
-                downloader.add(file.links.content, FileSink(file_output))
+                downloader.add(str(file.links.content), FileSink(file_output))

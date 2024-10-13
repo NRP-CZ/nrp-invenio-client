@@ -20,7 +20,7 @@ class TransferRegistry:
         """Initialize the registry."""
         self.transfers = {}
 
-    def register(self, transfer_type: TransferType, transfer: Type[Transfer]):
+    def register(self, transfer_type: TransferType, transfer: Type[Transfer]) -> None:
         """Register a transfer type.
 
         :param transfer_type:       transfer type
@@ -29,7 +29,7 @@ class TransferRegistry:
         self.transfers[transfer_type] = transfer
 
     def get(self, transfer_type: TransferType) -> Transfer:
-        """Get a transfer for a transfer type
+        """Get a transfer for a transfer type.
 
         :param transfer_type:       transfer type
         :return:                    instance of a transfer
@@ -43,6 +43,6 @@ transfer_registry = TransferRegistry()
 #
 # supported transfers are registered here
 #
-from .local import LocalTransfer
+from .local import LocalTransfer  # noqa
 
 transfer_registry.register(TransferType.LOCAL, LocalTransfer)

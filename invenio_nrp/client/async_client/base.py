@@ -8,26 +8,24 @@
 """Implementation of the client for the NRP repository."""
 
 from functools import partial
-from types import SimpleNamespace
 
 from invenio_nrp.config import Config, RepositoryConfig
 from invenio_nrp.types import RepositoryInfo
 
 from .connection import Connection
-from .files import File
 from .info import AsyncInfoClient
-from .records import Record, RecordClient
-from .request_types import RequestType
-from .requests import Request, RequestClient
-from .rest import BaseRecord
+from .records import RecordClient
+from .requests import RequestClient
 
 
 class AsyncClient(Connection):
+    """Client for the NRP repository."""
+
     def __init__(
         self,
-        alias: str|None = None,
-        repository: RepositoryConfig|None = None,
-        config: Config|None = None,
+        alias: str | None = None,
+        repository: RepositoryConfig | None = None,
+        config: Config | None = None,
     ):
         """Initialize the client.
 
@@ -45,7 +43,7 @@ class AsyncClient(Connection):
 
         super().__init__(config, repository_config)
 
-    async def info(self, refresh=False) -> RepositoryInfo:
+    async def info(self, refresh: bool = False) -> RepositoryInfo:
         """Retrieve info endpoint from the repository.
 
         :return: The parsed content of the info endpoint
@@ -61,7 +59,7 @@ class AsyncClient(Connection):
             self,
         ).info(refresh)
 
-    def published_records(self, model=None) -> RecordClient:
+    def published_records(self, model: str | None = None) -> RecordClient:
         """Get a client for the records endpoint.
 
         :param model: The model to use for the records endpoint, will default to all records if not provided.
@@ -69,13 +67,12 @@ class AsyncClient(Connection):
         """
         return RecordClient(
             self,
-            model,
             create_url=partial(self._repository_config.create_url, model),
             read_url=partial(self._repository_config.read_url, model),
             search_url=partial(self._repository_config.search_url, model),
         )
 
-    def user_records(self, model=None) -> RecordClient:
+    def user_records(self, model: str | None = None) -> RecordClient:
         """Get a client for the records endpoint.
 
         :param model: The model to use for the records endpoint, will default to all records if not provided.
@@ -83,17 +80,14 @@ class AsyncClient(Connection):
         """
         return RecordClient(
             self,
-            model,
             create_url=partial(self._repository_config.create_url, model),
             read_url=partial(self._repository_config.user_read_url, model),
             search_url=partial(self._repository_config.user_search_url, model),
         )
 
     def requests(self) -> RequestClient:
-        """Get a client for the requests endpoint, giving API for requests that the user has access to
+        """Get a client for the requests endpoint, giving API for requests that the user has access to.
 
         :return: API for requests
         """
-        return RequestClient(
-            self, self._repository_config.requests_url
-        )
+        return RequestClient(self, self._repository_config.requests_url)

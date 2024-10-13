@@ -5,7 +5,9 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
-"""Synchronous client for the NRP Invenio repository. Provides the SyncClient class
+"""Synchronous client for the NRP Invenio repository.
+
+Provides the SyncClient class
 that allows to interact with the NRP Invenio repository.
 
 Use the synchronous client if you want to have an ease of use experience and you

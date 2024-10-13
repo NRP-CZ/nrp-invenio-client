@@ -16,8 +16,8 @@ with Downloader(progress=ProgressBar(), auth=SomeAuth()) as downloader:
     downloader.add(url="https://example.com/file", sink=FileSink(Path("output.txt")))
 """
 
+from .downloader import Downloader
 from .progress import ProgressKeeper
 from .progress_bar import ProgressBar
-from .downloader import Downloader
 
 __all__ = ["ProgressKeeper", "ProgressBar", "Downloader"]

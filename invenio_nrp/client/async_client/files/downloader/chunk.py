@@ -1,14 +1,23 @@
+#
+# Copyright (C) 2024 CESNET z.s.p.o.
+#
+# invenio-nrp is free software; you can redistribute it and/or
+# modify it under the terms of the MIT License; see LICENSE file for more
+# details.
+#
+"""Downloader chunk."""
+
 import dataclasses
 import traceback
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from .downloader import Downloader, DownloadJob
+from aiohttp import ClientResponse
+
+from .downloader import Downloader, DownloadJob
 
 
 @dataclasses.dataclass
 class DownloadChunk:
-    """A single chunk of a download job"""
+    """A single chunk of a download job."""
 
     downloader: "Downloader"
     """The downloader that is downloading this chunk"""
@@ -22,13 +31,13 @@ class DownloadChunk:
     size: int = 0
     """The size of the chunk"""
 
-    async def download_chunk(self):
-        """Method that downloads the chunk and retries the download if needed."""
+    async def download_chunk(self) -> None:
+        """Download the chunk and retry the download if needed."""
         initial_size = self.size
         async with self.downloader.limiter:
             self.downloader.progress.download_chunk_started(self)
             async with self.downloader._client() as client:
-                for try_ in range(self.downloader.retry_count):
+                for _ in range(self.downloader.retry_count):
                     try:
                         range_header = await self._get_range_header()
 
@@ -53,16 +62,16 @@ class DownloadChunk:
             self.downloader.progress.download_chunk_finished(self)
         self.job.chunk_finished(initial_size)
 
-
-    async def _get_range_header(self):
+    async def _get_range_header(self) -> str:
         if self.size:
             range_header = f"bytes={self.offset}-{self.offset + self.size - 1}"
         else:
             range_header = f"bytes={self.offset}-"
         return range_header
 
-    async def _save_stream_to_sink(self, response):
-        async with self.job.sink.open_chunk(self.offset) as sink_stream:
+    async def _save_stream_to_sink(self, response: ClientResponse) -> None:
+        async with self.job.sink.open_chunk(self.offset) as sink_stream:  # type: ignore
+            chunk: bytes
             async for chunk in response.content.iter_chunked(
                 self.downloader.block_size
             ):

@@ -6,11 +6,6 @@
 # details.
 #
 """Implementation of a sink that writes data to memory."""
-import contextlib
-from typing import AsyncIterator
-
-from ..os import DataWriter
-from .base import DataSink, SinkState
 
 
 class MemoryWriter:
@@ -35,6 +30,6 @@ class MemoryWriter:
         self._offset += len(b)
         return len(b)
 
-    async def close(self):
+    async def close(self) -> None:
+        """Close the writer."""
         pass
-

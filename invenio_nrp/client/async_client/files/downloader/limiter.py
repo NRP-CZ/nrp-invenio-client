@@ -1,11 +1,20 @@
+#
+# Copyright (C) 2024 CESNET z.s.p.o.
+#
+# invenio-nrp is free software; you can redistribute it and/or
+# modify it under the terms of the MIT License; see LICENSE file for more
+# details.
+#
+"""Contains the limiter class for limiting the number of simultaneous connections."""
+
 import asyncio
 
 
 class Limiter(asyncio.Semaphore):
-    """A class to limit the number of simultaneous connections"""
+    """A class to limit the number of simultaneous connections."""
 
-    def __init__(self, capacity):
-        """Initialize the limiter
+    def __init__(self, capacity: int):
+        """Initialize the limiter.
 
         :param capacity:    the number of simultaneous connections
         """
@@ -13,8 +22,8 @@ class Limiter(asyncio.Semaphore):
         super().__init__(capacity)
 
     @property
-    def free(self):
-        """The number of free slots
+    def free(self) -> int:
+        """The number of free slots.
 
         :return:   the number of remaining connections
         """

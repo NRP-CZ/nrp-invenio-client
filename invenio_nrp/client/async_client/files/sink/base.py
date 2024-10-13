@@ -6,12 +6,11 @@
 # details.
 #
 """Protocol for data sinks."""
-import contextlib
+
 from enum import StrEnum, auto
-from typing import Protocol
+from typing import AsyncContextManager, Protocol
 
 from ..os import DataWriter
-from typing import AsyncContextManager
 
 
 class SinkState(StrEnum):

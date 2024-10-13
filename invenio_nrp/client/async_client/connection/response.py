@@ -22,7 +22,7 @@ class RepositoryResponse(ClientResponse):
     """A response that can raise parsed invenio errors."""
 
     async def raise_for_invenio_status(self) -> None:
-        """Raises an exception if the response status code is not 2xx.
+        """Raise an exception if the response status code is not 2xx.
 
         :raises RepositoryServerError: if the status code is 5xx
         :raises RepositoryClientError: if the status code is 4xx

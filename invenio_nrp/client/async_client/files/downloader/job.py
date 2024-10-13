@@ -1,16 +1,28 @@
+#
+# Copyright (C) 2024 CESNET z.s.p.o.
+#
+# invenio-nrp is free software; you can redistribute it and/or
+# modify it under the terms of the MIT License; see LICENSE file for more
+# details.
+#
+"""Downloader job."""
+
 import dataclasses
-from typing import Optional, Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
+
+from aiohttp_retry import RetryClient
 
 if TYPE_CHECKING:
     from .downloader import Downloader
 
-from .chunk import DownloadChunk
 from invenio_nrp.client.async_client.files.sink.base import DataSink
+
+from .chunk import DownloadChunk
 
 
 @dataclasses.dataclass
 class DownloadJob:
-    """A single download job (that is, a URL)"""
+    """A single download job (that is, a URL)."""
 
     downloader: "Downloader"
     """The downloader that is downloading this job"""
@@ -37,8 +49,8 @@ class DownloadJob:
     """
     downloaded_size: int = 0
 
-    async def start_downloading(self):
-        """Start downloading the file"""
+    async def start_downloading(self) -> None:
+        """Start downloading the file."""
         self.downloader.progress.download_file_started(self)
 
         async with self.downloader._client() as client:
@@ -68,9 +80,11 @@ class DownloadJob:
 
         self.downloader.progress.download_file_info_finished(self)
 
-
-    async def _get_download_url_and_size(self, client, url):
-        for r in range(self.downloader.max_redirects):
+    async def _get_download_url_and_size(
+        self, client: RetryClient, url: str
+    ) -> tuple[int, str]:
+        """Get the download URL and size of the file."""
+        for _ in range(self.downloader.max_redirects):
             async with client.options(url, allow_redirects=False) as response:
                 if response.status == 302:
                     url = response.headers.get("Location", url)
@@ -90,15 +104,16 @@ class DownloadJob:
 
         return size, url
 
-    def chunk_finished(self, size: int):
-        """Called when a chunk has been successfully downloaded"""
+    def chunk_finished(self, size: int) -> None:
+        """Note that chunk has been successfully downloaded."""
         self.downloaded_chunks += 1
         self.downloaded_size += size
 
         if self.downloaded_chunks == self.total_chunks:
             self.downloader.create_task(self._finish_download())
 
-    async def _finish_download(self):
+    async def _finish_download(self) -> None:
+        """Finish the download."""
         self.downloader.progress.download_file_before_finish(self)
         try:
             await self.sink.close()
@@ -106,20 +121,21 @@ class DownloadJob:
         except Exception as e:
             print(f"Error closing sink: {e}")
 
-    def _get_chunk_size(self, size):
+    def _get_chunk_size(self, file_size: int) -> int:
+        """Get the size of the chunk."""
         # if the file is very small, just download the whole file
-        if size < self.downloader.min_chunk_size:
-            return size
+        if file_size < self.downloader.min_chunk_size:
+            return file_size
 
-        if size < self.downloader.max_chunk_size:
+        if file_size < self.downloader.max_chunk_size:
             # check if there is still a space and if so, divide the file into chunks
             empty_slots = self.downloader.limiter.free
             if empty_slots > 0:
-                chunk_size = size // empty_slots
+                chunk_size = file_size // empty_slots
                 return max(chunk_size, self.downloader.min_chunk_size)
 
             # if not, just download as a single chunk
-            return size
+            return file_size
 
         # split into chunks of max_chunk_size
         return self.downloader.max_chunk_size

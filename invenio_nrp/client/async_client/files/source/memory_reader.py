@@ -7,10 +7,11 @@
 #
 """Memory-based data source."""
 
+
 class MemoryReader:
     """A reader for in-memory data."""
 
-    def __init__(self, data):
+    def __init__(self, data: bytes):
         """Initialize the reader.
 
         :param data:        the data that will be read

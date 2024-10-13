@@ -1,18 +1,28 @@
+#
+# Copyright (C) 2024 CESNET z.s.p.o.
+#
+# invenio-nrp is free software; you can redistribute it and/or
+# modify it under the terms of the MIT License; see LICENSE file for more
+# details.
+#
+"""Commandline client for the downloader."""
+
 import asyncio
 from pathlib import Path
 from typing import Annotated
 
-from invenio_nrp import Config
-from ...connection.auth import BearerTokenForHost, BearerAuthentication
-from .downloader import Downloader
-from .progress_bar import ProgressBar
-from ..sink.file import FileSink
-
 import typer
 
-async def _main(downloader_jobs):
-    """A commandline client to download files from the NRP Invenio API"""
+from invenio_nrp import Config
 
+from ...connection.auth import BearerAuthentication, BearerTokenForHost
+from ..sink.file import FileSink
+from .downloader import Downloader
+from .progress_bar import ProgressBar
+
+
+async def _main(downloader_jobs: list[tuple[str, Path]]) -> None:
+    """Download files from the NRP Invenio API to a local file system."""
     config = Config.from_file()
     auth_tokens = []
     for repo in config.repositories:
@@ -37,8 +47,10 @@ def main(
             help="A list of urls to download. Might be in the form of 'url' or 'url->local_file_path'"
         ),
     ],
-):
-    """Download files from the given urls and save them to the local files. Authentication will be taken either
+) -> None:
+    """Download files from the given urls and save them to the local files.
+
+    Authentication will be taken either
     from the ~/.nrp/invenio-config.json (Bearer tokens if the file is downloaded from a configured repository)
     or from .netrc.
     """

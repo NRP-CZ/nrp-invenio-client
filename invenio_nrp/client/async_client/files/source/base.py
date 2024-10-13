@@ -7,13 +7,14 @@
 #
 """Protocol for data sources."""
 
-from typing import Protocol, AsyncContextManager
+from typing import AsyncContextManager, Protocol
 
 from ..os import DataReader
 
 
 class DataSource(Protocol):
     """Protocol for data sources."""
+
     has_range_support: bool = False
 
     async def open(self, offset: int = 0) -> AsyncContextManager[DataReader]:
@@ -25,13 +26,13 @@ class DataSource(Protocol):
         ...
 
     async def size(self) -> int:
-        """Returns the length of the data source in bytes."""
+        """Return the length of the data source in bytes."""
         ...
 
     async def content_type(self) -> str:
-        """Returns the content type of the data source."""
+        """Return the content type of the data source."""
         ...
 
     async def close(self) -> None:
-        """Closes the data source."""
+        """Close the data source."""
         ...

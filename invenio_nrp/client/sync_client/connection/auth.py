@@ -5,6 +5,7 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
+"""Authentication for the synchronous client."""
 
 import requests.auth
 from yarl import URL
@@ -13,10 +14,14 @@ from invenio_nrp.client.async_client.connection.auth import BearerTokenForHost
 
 
 class BearerAuthentication(requests.auth.AuthBase):
+    """Bearer token authentication for requests."""
+
     def __init__(self, tokens: list[BearerTokenForHost]):
+        """Initialize the authentication with the tokens."""
         self.tokens = tokens
 
-    def __call__(self, r):
+    def __call__(self, r: requests.Request) -> requests.Request:
+        """Add the Authorization header to the request."""
         url = URL(r.url)
 
         for token in self.tokens:

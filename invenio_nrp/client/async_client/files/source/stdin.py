@@ -1,10 +1,18 @@
+#
+# Copyright (C) 2024 CESNET z.s.p.o.
+#
+# invenio-nrp is free software; you can redistribute it and/or
+# modify it under the terms of the MIT License; see LICENSE file for more
+# details.
+#
+"""Data source that reads data from standard input."""
+
 import contextlib
 from pathlib import Path
 from typing import AsyncIterator
 
+from ..os import DataReader, open_file
 from .base import DataSource
-
-from ..os import DataReader, file_stat, open_file
 
 
 class StdInDataSource(DataSource):
@@ -14,17 +22,20 @@ class StdInDataSource(DataSource):
 
     # TODO: how to correctly type this?
     @contextlib.asynccontextmanager
-    async def open(self, offset: int = 0) -> AsyncIterator[DataReader]: # type: ignore
-        ret = await open_file(Path('/sys/stdin'), mode="rb")
+    async def open(self, offset: int = 0) -> AsyncIterator[DataReader]:  # type: ignore
+        """Open the data source for reading."""
+        ret = await open_file(Path("/sys/stdin"), mode="rb")
         yield ret
         await ret.close()
 
     async def size(self) -> int:
+        """Return the size of the data - in this case -1 as unknown."""
         return -1
 
     async def content_type(self) -> str:
+        """Return the content type of the data."""
         return "application/octet-stream"
 
     async def close(self) -> None:
-        """Closes the data source."""
+        """Close the data source."""
         pass

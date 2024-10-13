@@ -5,7 +5,8 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
-"""File data source"""
+"""File data source."""
+
 import contextlib
 from pathlib import Path
 from typing import AsyncIterator
@@ -33,15 +34,18 @@ class FileDataSource(DataSource):
     # TODO: how to correctly type this?
     @contextlib.asynccontextmanager
     async def open(self, offset: int = 0) -> AsyncIterator[DataReader]:  # type: ignore
+        """Open the file for reading."""
         ret = await open_file(self._file_name, mode="rb")
         await ret.seek(offset)
         yield ret
         await ret.close()
 
     async def size(self) -> int:
+        """Return the size of the file."""
         return (await file_stat(self._file_name)).st_size
 
     async def content_type(self) -> str:
+        """Return the content type of the file."""
         f = await open_file(self._file_name, mode="rb")
         try:
             data = await f.read(2048)
@@ -50,4 +54,5 @@ class FileDataSource(DataSource):
             await f.close()
 
     async def close(self) -> None:
+        """Close the data source."""
         pass

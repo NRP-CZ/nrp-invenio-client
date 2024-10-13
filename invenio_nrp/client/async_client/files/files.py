@@ -9,8 +9,7 @@
 
 from enum import StrEnum
 from pathlib import Path
-from types import SimpleNamespace
-from typing import Any, Optional, Type
+from typing import Any, Optional, Self
 
 from pydantic import fields
 
@@ -51,7 +50,7 @@ class FileLinks(RESTObjectLinks):
 
 
 class File(RESTObject):
-    """A file object as stored in .../files/<key>"""
+    """A file object as stored in .../files/<key>."""
 
     key: str
     """Key(filename) of the file."""
@@ -65,18 +64,19 @@ class File(RESTObject):
     transfer_type: Optional[TransferType] = None
     """Type of the transfer that is used for uploading/downloading the file."""
 
-    async def save(self):
+    async def save(self) -> Self:
         """Save the file metadata."""
         return await self._connection.put(
             url=self.links.self_,
             json={
                 "metadata": self.metadata,
             },
+            result_class=File,
         )
 
 
 class FilesList(RESTObject):
-    """A list of files, as stored in ...<record_id>/files"""
+    """A list of files, as stored in ...<record_id>/files."""
 
     enabled: bool
     """Whether the files are enabled on the record."""
@@ -85,6 +85,7 @@ class FilesList(RESTObject):
     """List of files on the record."""
 
     def __getitem__(self, key: str) -> File:
+        """Get a file by key."""
         for v in self.entries:
             if v.key == key:
                 return v
@@ -92,10 +93,13 @@ class FilesList(RESTObject):
 
 
 class FilesClient:
-    """Client for the files endpoint. Normally not used directly but from AsyncClient().records.read(...).files"""
+    """Client for the files endpoint.
+
+    Normally not used directly but from AsyncClient().records.read(...).files.
+    """
 
     def __init__(self, connection: Connection, files_endpoint: YarlURL):
-        """Initializes the client
+        """Initialize the client.
 
         :param connection: Connection to the repository
         :param files_endpoint: The files endpoint
@@ -116,7 +120,7 @@ class FilesClient:
         metadata: dict[str, Any],
         file: DataSource | str | Path,
         transfer_type: TransferType = TransferType.LOCAL,
-        transfer_metadata: dict|None = None,
+        transfer_metadata: dict | None = None,
     ) -> File:
         """Upload a file to the repository.
 
@@ -127,7 +131,6 @@ class FilesClient:
         :param transfer_metadata:   extra metadata for the transfer
         :return:                    metadata of the uploaded file
         """
-
         if isinstance(file, (str, Path)):
             from .source.file import FileDataSource
 

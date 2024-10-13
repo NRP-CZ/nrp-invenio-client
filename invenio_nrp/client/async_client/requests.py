@@ -9,8 +9,7 @@
 
 from datetime import datetime
 from enum import StrEnum, auto
-from types import SimpleNamespace
-from typing import Annotated, Any, Optional
+from typing import Annotated, Any, Optional, Self
 
 from pydantic import AfterValidator, BeforeValidator, Field, fields, model_validator
 from yarl import URL
@@ -21,12 +20,13 @@ from .connection import Connection
 from .rest import BaseRecord, RESTList, RESTObjectLinks
 
 
-def single_value_expected(value):
+def single_value_expected(value: list | tuple) -> None:
+    """Check that the value is a single value."""
     assert len(value) == 1, "Expected exactly one value"
 
 
 class RequestActionLinks(Model):
-    """Possible actions on a request"""
+    """Possible actions on a request."""
 
     submit: Optional[YarlURL] = None
     cancel: Optional[YarlURL] = None
@@ -35,7 +35,7 @@ class RequestActionLinks(Model):
 
 
 class RequestLinks(RESTObjectLinks):
-    """Links on a request"""
+    """Links on a request."""
 
     actions: RequestActionLinks
     """Actions that can be performed on the request at the moment by the current user."""
@@ -51,6 +51,8 @@ class RequestLinks(RESTObjectLinks):
 
 
 class RequestStatus(StrEnum):
+    """Status of the request."""
+
     CREATED = auto()
     ACCEPTED = auto()
     DECLINED = auto()
@@ -63,10 +65,12 @@ JSONRequestStatus = Annotated[
     RequestStatus,
     BeforeValidator(lambda x: RequestStatus(x) if isinstance(x, str) else x),
 ]
+"""Status of the request with pydantic validation."""
 
 
 class RequestPayloadRecord(Model):
     """A publish/edit/new version request can have a simplified record serialization inside its payload.
+
     Currently the serialization contains only links to the published/draft record.
     """
 
@@ -75,7 +79,9 @@ class RequestPayloadRecord(Model):
 
 
 class RequestPayload(Model):
-    """Payload of a request. It can be of different types, depending on the request type.
+    """Payload of a request.
+
+    It can be of different types, depending on the request type.
     In the library, the payload is extensible. If you know that there is a specific property
     on the payload, just use payload.property_name to access it.
     """
@@ -88,7 +94,7 @@ class RequestPayload(Model):
 
     @model_validator(mode="before")
     @classmethod
-    def __pydantic_restore_hierarchy(cls, data: dict[str, Any]) -> Any:     # type: ignore
+    def __pydantic_restore_hierarchy(cls, data: dict[str, Any]) -> Any:  # type: ignore # noqa: ANN401
         if not data:
             return {}
         obj: dict[str, Any] = {}
@@ -97,7 +103,7 @@ class RequestPayload(Model):
         return obj
 
     @classmethod
-    def _parse_colon_hierarchy(self, obj: dict[str, Any], key: str, value: Any):    # type: ignore
+    def _parse_colon_hierarchy(self, obj: dict[str, Any], key: str, value: Any) -> None:  # type: ignore # noqa: ANN401
         parts = key.split(":")
         for part in parts[:-1]:
             obj = obj.setdefault(part, {})
@@ -147,41 +153,46 @@ class Request(BaseRecord):
     payload: Optional[RequestPayload] = None
     """Payload of the request. It can be of different types, depending on the request type."""
 
-    def submit(self, payload=None):
-        """Submit the request. The request will be either passed to receivers, or auto-approved
+    async def submit(self, payload: dict | None = None) -> Self:
+        """Submit the request.
+
+        The request will be either passed to receivers, or auto-approved
         depending on the current workflow
         """
-        return self._push_request(
+        return await self._push_request(
             required_request_status=RequestStatus.CREATED,
             action="submit",
             payload=payload,
         )
 
-    def accept(self, payload=None):
+    async def accept(self, payload: dict | None = None) -> Self:
         """Accept the submitted request."""
-        return self._push_request(
+        return await self._push_request(
             required_request_status=RequestStatus.SUBMITTED,
             action="accept",
             payload=payload,
         )
 
-    def decline(self, payload=None):
+    async def decline(self, payload: dict | None = None) -> Self:
         """Decline the submitted request."""
-        return self._push_request(
+        return await self._push_request(
             required_request_status=RequestStatus.SUBMITTED,
             action="decline",
             payload=payload,
         )
 
-    def cancel(self, payload=None):
+    async def cancel(self, payload: dict | None = None) -> Self:
         """Cancel the request."""
-        return self._push_request(
+        return await self._push_request(
             required_request_status=RequestStatus.CREATED,
             action="cancel",
             payload=payload,
         )
 
-    def _push_request(self, *, required_request_status, action, payload):
+    async def _push_request(
+        self, *, required_request_status: str, action: str, payload: dict | None
+    ) -> Self:
+        """Push the request to the server."""
         if self.status != required_request_status:
             raise ValueError(
                 f"Can {action} only requests with status {required_request_status}, not {self.status}"
@@ -192,7 +203,7 @@ class Request(BaseRecord):
         if not action_link:
             raise ValueError(f"You have no permission to {action} this request")
 
-        return self._connection.post(
+        return await self._connection.post(
             url=action_link, json=payload or {}, result_class=type(self)
         )
 
@@ -211,7 +222,10 @@ class RequestList(RESTList[Request]):
 
 
 class RequestClient:
-    """Record requests. Usually not used directly, but through AsyncClient().requests() call"""
+    """Record requests.
+
+    Usually not used directly, but through AsyncClient().requests() call
+    """
 
     def __init__(self, connection: Connection, requests_url: URL):
         """Initialize the class.
@@ -222,7 +236,7 @@ class RequestClient:
         self._connection = connection
         self._requests_url = requests_url
 
-    async def all(self, **params) -> RequestList:
+    async def all(self, **params: str) -> RequestList:
         """Search for all requests the user has access to.
 
         :param params:  Additional parameters to pass to the search query, see invenio docs for possible values
@@ -234,33 +248,33 @@ class RequestClient:
             params=params,
         )
 
-    async def created(self, **params) -> RequestList:
-        """Return all requests, that are created but not yet submitted"""
+    async def created(self, **params: str) -> RequestList:
+        """Return all requests, that are created but not yet submitted."""
         return await self.all(status="created", **params)
 
-    async def submitted(self, **params) -> RequestList:
-        """Return all submitted requests"""
+    async def submitted(self, **params: str) -> RequestList:
+        """Return all submitted requests."""
         return await self.all(status="submitted", **params)
 
-    async def accepted(self, **params) -> RequestList:
-        """Return all accepted requests"""
+    async def accepted(self, **params: str) -> RequestList:
+        """Return all accepted requests."""
         return await self.all(status="accepted", **params)
 
-    async def declined(self, **params) -> RequestList:
-        """Return all declined requests"""
+    async def declined(self, **params: str) -> RequestList:
+        """Return all declined requests."""
         return await self.all(status="declined", **params)
 
-    async def expired(self, **params) -> RequestList:
-        """Return all expired requests"""
+    async def expired(self, **params: str) -> RequestList:
+        """Return all expired requests."""
         return await self.all(status="expired", **params)
 
-    async def cancelled(self, **params) -> RequestList:
-        """Return all cancelled requests"""
+    async def cancelled(self, **params: str) -> RequestList:
+        """Return all cancelled requests."""
         return await self.all(status="cancelled", **params)
 
-    async def read_request(self, request_id) -> Request:
-        """Read a single request by its id"""
+    async def read_request(self, request_id: str) -> Request:
+        """Read a single request by its id."""
         return await self._connection.get(
-            url=f"{self._requests_url}/{request_id}",
+            url=self._requests_url / request_id,
             result_class=Request,
         )
