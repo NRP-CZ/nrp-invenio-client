@@ -6,19 +6,20 @@
 # details.
 #
 """Bearer authentication support for aiohttp"""
-
+import dataclasses
 from typing import Optional
 
 from aiohttp import BasicAuth, ClientRequest, hdrs
+from yarl import URL
 
-from invenio_nrp.types.base import URLBearerToken
+from invenio_nrp.types import YarlURL
 
 
 class Authentication(BasicAuth):
     """A generic authentication class that can be used to provide different types of authentication."""
 
     # a little strange to inherit from BasicAuth, but it is the only way to
-    # provide pass different auth types to the ClientRequest
+    # provide different auth types to the ClientRequest
 
     def apply(self, request: ClientRequest) -> None:
         """Apply the authentication to the request.
@@ -41,10 +42,28 @@ class AuthenticatedClientRequest(ClientRequest):
         auth.apply(self)
 
 
+
+@dataclasses.dataclass
+class BearerTokenForHost:
+    """URL and bearer token for the invenio repository."""
+
+    host_url: YarlURL
+    """URL of the repository."""
+
+    token: str
+    """Bearer token for the repository."""
+
+    def __post_init__(self):
+        """Cast the host_url to YarlURL if it is not already."""
+        if not isinstance(self.host_url, URL):
+            self.host_url = URL(self.host_url)
+        assert self.token is not None, "Token must be provided"
+
+
 class BearerAuthentication(Authentication):
     """Bearer authentication class that adds the Bearer token to the request."""
 
-    def __init__(self, tokens: list[URLBearerToken]):
+    def __init__(self, tokens: list[BearerTokenForHost]):
         """Creates a new BearerAuthentication instance.
 
         :param tokens: list of (host url, token) pairs. The token will be added to the request if the host url matches

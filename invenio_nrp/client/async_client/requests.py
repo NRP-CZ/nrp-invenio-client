@@ -13,8 +13,8 @@ from types import SimpleNamespace
 from typing import Annotated, Any, Optional
 
 from pydantic import AfterValidator, BeforeValidator, Field, fields, model_validator
+from yarl import URL
 
-from ...generic import generic_arguments
 from ...types.base import Model
 from ...types.yarl_url import YarlURL
 from .connection import Connection
@@ -80,24 +80,24 @@ class RequestPayload(Model):
     on the payload, just use payload.property_name to access it.
     """
 
-    published_record: RequestPayloadRecord = None
+    published_record: RequestPayloadRecord | None = None
     """A publish request can have a simplified record serialization inside its payload."""
 
-    draft_record: RequestPayloadRecord = None
+    draft_record: RequestPayloadRecord | None = None
     """An edit request can have a simplified record serialization inside its payload."""
 
     @model_validator(mode="before")
     @classmethod
-    def __pydantic_restore_hierarchy(cls, data: Any) -> Any:
+    def __pydantic_restore_hierarchy(cls, data: dict[str, Any]) -> Any:     # type: ignore
         if not data:
             return {}
-        obj = {}
+        obj: dict[str, Any] = {}
         for k, v in data.items():
             cls._parse_colon_hierarchy(obj, k, v)
         return obj
 
     @classmethod
-    def _parse_colon_hierarchy(self, obj, key, value):
+    def _parse_colon_hierarchy(self, obj: dict[str, Any], key: str, value: Any):    # type: ignore
         parts = key.split(":")
         for part in parts[:-1]:
             obj = obj.setdefault(part, {})
@@ -197,9 +197,7 @@ class Request(BaseRecord):
         )
 
 
-class RequestList[RequestBase: Request](
-    RESTList[RequestBase]  # noqa (RequestBase looks like not defined in pycharm)
-):
+class RequestList(RESTList[Request]):
     """A list of requests."""
 
     sortBy: Optional[str]
@@ -208,14 +206,14 @@ class RequestList[RequestBase: Request](
     aggregations: Optional[Any]
     """Aggregations of the list"""
 
-    hits: list[RequestBase]
+    hits: list[Request]
     """List of requests that matched the search query"""
 
 
-class RequestClient[RequestBase: Request]:
+class RequestClient:
     """Record requests. Usually not used directly, but through AsyncClient().requests() call"""
 
-    def __init__(self, connection: Connection, requests_url: str):
+    def __init__(self, connection: Connection, requests_url: URL):
         """Initialize the class.
 
         :param connection: Connection to the NRP repository
@@ -224,49 +222,45 @@ class RequestClient[RequestBase: Request]:
         self._connection = connection
         self._requests_url = requests_url
 
-    @property
-    def _generic_arguments(self) -> SimpleNamespace:
-        return generic_arguments.actual_types(self)
-
-    async def all(self, **params) -> RequestList[RequestBase]:
+    async def all(self, **params) -> RequestList:
         """Search for all requests the user has access to.
 
         :param params:  Additional parameters to pass to the search query, see invenio docs for possible values
         """
         return await self._connection.get(
             url=self._requests_url,
-            result_class=RequestList[self._generic_arguments.RequestBase],
+            result_class=RequestList,
             result_context={"connection": self._connection},
             params=params,
         )
 
-    async def created(self, **params) -> RequestList[RequestBase]:
+    async def created(self, **params) -> RequestList:
         """Return all requests, that are created but not yet submitted"""
         return await self.all(status="created", **params)
 
-    async def submitted(self, **params) -> RequestList[RequestBase]:
+    async def submitted(self, **params) -> RequestList:
         """Return all submitted requests"""
         return await self.all(status="submitted", **params)
 
-    async def accepted(self, **params) -> RequestList[RequestBase]:
+    async def accepted(self, **params) -> RequestList:
         """Return all accepted requests"""
         return await self.all(status="accepted", **params)
 
-    async def declined(self, **params) -> RequestList[RequestBase]:
+    async def declined(self, **params) -> RequestList:
         """Return all declined requests"""
         return await self.all(status="declined", **params)
 
-    async def expired(self, **params) -> RequestList[RequestBase]:
+    async def expired(self, **params) -> RequestList:
         """Return all expired requests"""
         return await self.all(status="expired", **params)
 
-    async def cancelled(self, **params) -> RequestList[RequestBase]:
+    async def cancelled(self, **params) -> RequestList:
         """Return all cancelled requests"""
         return await self.all(status="cancelled", **params)
 
-    async def read_request(self, request_id) -> RequestBase:
+    async def read_request(self, request_id) -> Request:
         """Read a single request by its id"""
         return await self._connection.get(
             url=f"{self._requests_url}/{request_id}",
-            result_class=self._generic_arguments.RequestBase,
+            result_class=Request,
         )

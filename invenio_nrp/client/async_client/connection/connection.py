@@ -9,18 +9,17 @@
 
 import contextlib
 import logging
-from io import RawIOBase
-from typing import Optional, Type
+from io import IOBase
+from typing import Optional, Type, overload
 
 from aiohttp import ClientSession, TCPConnector
 from aiohttp_retry import RetryClient
-from pydantic import ValidationError
+from pydantic import ValidationError, BaseModel
 
 from invenio_nrp.config import Config, RepositoryConfig
-from invenio_nrp.types.base import URLBearerToken
 
 from ...errors import RepositoryCommunicationError, RepositoryError
-from .auth import AuthenticatedClientRequest, BearerAuthentication
+from .auth import AuthenticatedClientRequest, BearerAuthentication, BearerTokenForHost
 from .response import RepositoryResponse
 from .retry import ServerAssistedRetry
 
@@ -53,7 +52,7 @@ class Connection:
         self._repository_config = repository_config
 
         tokens = [
-            URLBearerToken(host_url=x.url, token=x.token)
+            BearerTokenForHost(host_url=x.url, token=x.token)
             for x in self._config.repositories
             if x.token
         ]
@@ -88,8 +87,8 @@ class Connection:
         self,
         *,
         url: object,
+        result_class: Type[T],
         idempotent: bool = True,
-        result_class: Type[T] = None,
         result_context: object = None,
         **kwargs: object,
     ) -> T:
@@ -120,7 +119,7 @@ class Connection:
         json=None,
         data=None,
         idempotent=False,
-        result_class: Type[T] = None,
+        result_class: Type[T],
         result_context=None,
         **kwargs,
     ) -> T:
@@ -157,7 +156,7 @@ class Connection:
         url,
         json=None,
         data=None,
-        result_class: Type[T] = None,
+        result_class: Type[T],
         result_context=None,
         **kwargs,
     ) -> T:
@@ -187,7 +186,7 @@ class Connection:
                         response, result_class, result_context
                     )
 
-    async def put_stream(self, *, url, file: RawIOBase, **kwargs):
+    async def put_stream(self, *, url, file: IOBase, **kwargs):
         """Perform a PUT request to the repository with a file.
 
         :param url:                 the url of the request
@@ -224,9 +223,21 @@ class Connection:
                 async with client.delete(url, auth=self.auth, **kwargs) as response:
                     return await self._get_call_result(response, None, None)
 
-    async def _get_call_result[T](
+    @overload
+    async def _get_call_result[T: BaseModel](
         self, response, result_class: Type[T], result_context
-    ):
+    ) -> T:
+        ...
+
+    @overload
+    async def _get_call_result(
+        self, response, result_class: None, result_context
+    ) -> None:
+        ...
+
+    async def _get_call_result[T: BaseModel](
+        self, response, result_class: Type[T] | None, result_context
+    ) -> T | None:
         """Get the result from the response.
 
         :param response:            the aiohttp response
@@ -240,8 +251,10 @@ class Connection:
         """
         await response.raise_for_invenio_status()
         if response.status == 204:
+            assert result_class is None
             return None
         json_payload = await response.read()
+        assert result_class is not None
         try:
             return result_class.model_validate_json(
                 json_payload,

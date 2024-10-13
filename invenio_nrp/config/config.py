@@ -65,6 +65,7 @@ class Config(BaseModel):
             self._config_file_path = path
         else:
             path = self._config_file_path
+        assert path is not None
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             self.model_dump_json(indent=4, by_alias=True),
@@ -85,6 +86,8 @@ class Config(BaseModel):
     @property
     def default_repository(self) -> RepositoryConfig:
         """Get the default repository."""
+        if self.default_alias is None:
+            raise ValueError("Default repository not set")
         return self.get_repository(self.default_alias)
 
     def add_repository(self, repository: RepositoryConfig) -> None:

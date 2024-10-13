@@ -50,6 +50,7 @@ class RepositoryConfig(BaseModel):
 
     def search_url(self, model: str | None) -> YarlURL:
         """Return URL to search for published records within a model."""
+        assert self.info is not None
         model = model or self._default_model_name
         if model:
             return self.info.models[model].links.published
@@ -57,6 +58,7 @@ class RepositoryConfig(BaseModel):
 
     def user_search_url(self, model: str | None) -> YarlURL:
         """Return URL to search for user's records within a model."""
+        assert self.info is not None
         model = model or self._default_model_name
         if model:
             return self.info.models[model].links.user_records
@@ -64,6 +66,7 @@ class RepositoryConfig(BaseModel):
 
     def create_url(self, model: str | None) -> YarlURL:
         """Return URL to create a new record within a model."""
+        assert self.info is not None
         model = model or self._default_model_name
         if model:
             return self.info.models[model].links.api
@@ -71,6 +74,7 @@ class RepositoryConfig(BaseModel):
 
     def read_url(self, model: str | None, record_id: str) -> YarlURL:
         """Return URL to a published record within a model."""
+        assert self.info is not None
         if record_id.startswith("https://"):
             return URL(record_id)
         model = model or self._default_model_name
@@ -80,6 +84,7 @@ class RepositoryConfig(BaseModel):
 
     def user_read_url(self, model: str | None, record_id: str) -> YarlURL:
         """Return URL to a draft record within a model."""
+        assert self.info is not None
         if record_id.startswith("https://"):
             return URL(record_id)
         model = model or self._default_model_name
@@ -90,6 +95,7 @@ class RepositoryConfig(BaseModel):
     @property
     def requests_url(self) -> YarlURL:
         """Return URL to the requests endpoint."""
+        assert self.info is not None
         return self.info.links.requests
 
     @property

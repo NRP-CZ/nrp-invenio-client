@@ -12,13 +12,6 @@
 #
 
 
-#
-# Copyright (C) 2024 CESNET z.s.p.o.
-#
-# invenio-nrp is free software; you can redistribute it and/or
-# modify it under the terms of the MIT License; see LICENSE file for more
-# details.
-#
 from invenio_nrp.client.sync_client.files import File
 from invenio_nrp.client.sync_client.files.source.memory import MemoryDataSource
 from invenio_nrp.client.sync_client.records import Record

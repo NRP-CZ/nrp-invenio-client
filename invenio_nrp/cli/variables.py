@@ -59,7 +59,7 @@ def list_variables(
     output_format: Annotated[
         Optional[OutputFormat],
         typer.Option(help="The format of the output"),
-    ] = "table",
+    ] = OutputFormat.TABLE,
 ) -> None:
     """List all variables."""
     console = Console()
@@ -79,7 +79,7 @@ def get_variable(
     output_format: Annotated[
         Optional[OutputFormat],
         typer.Option(help="The format of the output"),
-    ] = "table",
+    ] = OutputFormat.TABLE,
 ) -> None:
     """Get all variables."""
     console = Console()

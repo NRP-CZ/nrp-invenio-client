@@ -7,14 +7,11 @@
 #
 """Base types for invenio REST responses."""
 
-import dataclasses
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, BeforeValidator
 from typing_extensions import Annotated
-from yarl import URL
-
-from .yarl_url import YarlURL
 
 
 class Model(BaseModel):
@@ -23,7 +20,7 @@ class Model(BaseModel):
     class Config:  # noqa
         extra = "allow"
 
-    def __getattr__(self, item: str) -> any:
+    def __getattr__(self, item: str) -> Any:  # noqa: ANN401
         """Get extra fields from the model_extra attribute."""
         if self.model_extra:
             if item in self.model_extra:
@@ -39,20 +36,3 @@ JSONDateTime = Annotated[
     BeforeValidator(lambda x: datetime.fromisoformat(x) if isinstance(x, str) else x),
 ]
 """Python pydantic-enabled datetime."""
-
-
-@dataclasses.dataclass
-class URLBearerToken:
-    """URL and bearer token for the invenio repository."""
-
-    host_url: YarlURL
-    """URL of the repository."""
-
-    token: str
-    """Bearer token for the repository."""
-
-    def __post_init__(self):
-        """Cast the host_url to YarlURL if it is not already."""
-        if not isinstance(self.host_url, URL):
-            self.host_url = URL(self.host_url)
-        assert self.token is not None, "Token must be provided"

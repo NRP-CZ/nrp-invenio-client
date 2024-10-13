@@ -8,14 +8,15 @@
 import contextlib
 import json
 import logging
-from io import RawIOBase
-from typing import Optional, Type
+from io import IOBase
+from typing import Optional, Type, overload
 
 import requests
-from pydantic import ValidationError
+from pydantic import ValidationError, BaseModel
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
+from invenio_nrp.client.async_client.connection.auth import BearerTokenForHost
 from invenio_nrp.client.errors import (
     RepositoryClientError,
     RepositoryCommunicationError,
@@ -24,7 +25,6 @@ from invenio_nrp.client.errors import (
 )
 from invenio_nrp.client.sync_client.connection.auth import BearerAuthentication
 from invenio_nrp.config import Config, RepositoryConfig
-from invenio_nrp.types.base import URLBearerToken
 
 log = logging.getLogger("invenio_nrp.sync_client.connection")
 
@@ -66,7 +66,7 @@ class Connection:
         self._repository_config = repository_config
 
         tokens = [
-            URLBearerToken(host_url=x.url, token=x.token)
+            BearerTokenForHost(host_url=x.url, token=x.token)
             for x in self._config.repositories
             if x.token
         ]
@@ -111,7 +111,7 @@ class Connection:
         *,
         url: object,
         idempotent: bool = True,
-        result_class: Type[T] = None,
+        result_class: Type[T],
         result_context: object = None,
         **kwargs: object,
     ) -> T:
@@ -140,7 +140,7 @@ class Connection:
         json=None,
         data=None,
         idempotent=False,
-        result_class: Type[T] = None,
+        result_class: Type[T],
         result_context=None,
         **kwargs,
     ) -> T:
@@ -173,7 +173,7 @@ class Connection:
         url,
         json=None,
         data=None,
-        result_class: Type[T] = None,
+        result_class: Type[T],
         result_context=None,
         **kwargs,
     ) -> T:
@@ -199,7 +199,7 @@ class Connection:
                 with client.put(url, json=json, data=data, **kwargs) as response:
                     return self._get_call_result(response, result_class, result_context)
 
-    def put_stream(self, *, url, file: RawIOBase, **kwargs):
+    def put_stream(self, *, url, file: IOBase, **kwargs):
         """Perform a PUT request to the repository with a file.
 
         :param url:
@@ -233,7 +233,16 @@ class Connection:
                 with client.delete(url, **kwargs) as response:
                     return self._get_call_result(response, None, None)
 
-    def _get_call_result[T](self, response, result_class: Type[T], result_context):
+    @overload
+    def _get_call_result(self, response, result_class: None, result_context) -> None:
+        ...
+
+    @overload
+    def _get_call_result[T: BaseModel](self, response, result_class: Type[T], result_context) -> T:
+        ...
+
+
+    def _get_call_result[T: BaseModel](self, response, result_class: Type[T] | None, result_context) -> T | None:
         """Get the result from the response.
 
         :param response:
@@ -247,8 +256,10 @@ class Connection:
         """
         raise_for_invenio_status(response)
         if response.status_code == 204:
+            assert result_class is None
             return None
         json_payload = response.text
+        assert result_class is not None
         try:
             return result_class.model_validate_json(
                 json_payload,
@@ -269,9 +280,6 @@ def remove_quotes(etag: str) -> Optional[str]:
     if etag is None:
         return None
     return etag.strip('"')
-
-
-__all__ = ("HttpClient", "Connection")
 
 
 __all__ = ("Connection",)

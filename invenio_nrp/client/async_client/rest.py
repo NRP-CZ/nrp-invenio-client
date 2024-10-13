@@ -7,7 +7,7 @@
 #
 """Base rest types"""
 
-from typing import Iterable, Optional, Self
+from typing import Iterable, Optional, Self, Iterator, AsyncGenerator
 
 from pydantic import Field, PrivateAttr, fields, model_validator
 from pydantic_core.core_schema import ValidationInfo
@@ -68,7 +68,7 @@ class RESTPaginationLinks(Model):
     """Link to the previous page"""
 
 
-class RESTList[RestObject: RESTObject](RESTObject):
+class RESTList[T:RESTObject](RESTObject):
     """List of REST objects according to the Invenio REST API conventions."""
 
     _connection: Connection
@@ -80,7 +80,7 @@ class RESTList[RestObject: RESTObject](RESTObject):
     total: int
     """Total number of records that matched the search (not the number of returned records on the page)"""
 
-    hits: list[RestObject]
+    hits: list[T]
     """List of records on the current page"""
 
     class Config:
@@ -88,7 +88,7 @@ class RESTList[RestObject: RESTObject](RESTObject):
 
     @model_validator(mode="before")
     @classmethod
-    def __pydantic_flatten_hits(cls, data: RestObject) -> RestObject:
+    def __pydantic_flatten_hits(cls, data: dict) -> dict:
         obj = {**data}
         hits = obj.pop("hits", {})
         obj["total"] = hits.get("total")
@@ -99,7 +99,7 @@ class RESTList[RestObject: RESTObject](RESTObject):
         """Return the number of records on the current page"""
         return len(self.hits)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[T]:
         """Iterate over the records on the current page"""
         return iter(self.hits)
 
@@ -129,7 +129,7 @@ class RESTList[RestObject: RESTObject](RESTObject):
             )
         raise StopIteration()
 
-    async def all(self) -> Iterable[RestObject]:
+    async def all(self) -> AsyncGenerator[T]:
         """Iterate over all records in all pages, starting from the current page."""
         page = self
         for rec in page.hits:

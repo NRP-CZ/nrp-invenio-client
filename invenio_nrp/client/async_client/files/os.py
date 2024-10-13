@@ -23,7 +23,7 @@ type DataWriter = AsyncBufferedIOBase
 
 async def open_file(_fpath: Path, mode: str) -> DataReader | DataWriter:
     """Open a file for reading or writing."""
-    r: DataReader | DataWriter = await aiofiles.open(_fpath, mode=mode)  # noqa
+    r: DataReader | DataWriter = await aiofiles.open(_fpath, mode=mode)  # noqa # type: ignore
     return r
 
 

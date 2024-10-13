@@ -9,7 +9,7 @@
 
 from types import SimpleNamespace
 
-from invenio_nrp.generic import generic_arguments
+from yarl import URL
 
 from .connection import Connection
 from .request_types import RequestType, RequestTypeList
@@ -17,10 +17,10 @@ from .requests import RequestClient
 from .rest import BaseRecord
 
 
-class RecordRequestsClient[RequestBase: BaseRecord, RequestTypeBase: RequestType](
-    RequestClient[RequestBase]
+class RecordRequestsClient(
+    RequestClient
 ):
-    def __init__(self, connection: Connection, requests_url: str, request_types_url):
+    def __init__(self, connection: Connection, requests_url: URL, request_types_url: URL):
         """Initialize the client. Normally not used directly,
         use AsyncClient().user_records().read(...).requests instead.
 
@@ -31,14 +31,10 @@ class RecordRequestsClient[RequestBase: BaseRecord, RequestTypeBase: RequestType
         super().__init__(connection, requests_url)
         self._request_types_url = request_types_url
 
-    @property
-    def _generic_arguments(self) -> SimpleNamespace:
-        return generic_arguments.actual_types(self)
-
-    async def applicable(self, **params) -> RequestTypeList[RequestTypeBase]:
+    async def applicable(self, **params) -> RequestTypeList:
         """Return all applicable requests (that is those that the current user can apply for)."""
         return await self._connection.get(
             url=self._request_types_url,
-            result_class=RequestTypeList[self._generic_arguments.RequestTypeBase],
+            result_class=RequestTypeList,
             params=params,
         )

@@ -12,7 +12,6 @@ from typing import Any, Dict, Optional, Protocol, Self
 from pydantic import field_validator, fields
 from yarl import URL
 
-from ...generic import generic_arguments
 from ...types import Model, YarlURL
 from .connection import Connection
 from .files import File, FilesClient
@@ -31,26 +30,18 @@ class FilesEnabled(Model):
     enabled: bool
 
 
-class Record[
-    FileBase: File,
-    RequestBase: Request,
-    RequestTypeBase: RequestType[Request],
-](BaseRecord):
+class Record(BaseRecord):
     links: RecordLinks
     metadata: Optional[dict[str, Any]] = None
     files_: Optional[FilesEnabled] = fields.Field(alias="files")
 
     @field_validator("files_", mode="before")
     @classmethod
-    def transform(cls, raw: any) -> Dict:
+    def transform(cls, raw: Any) -> Dict:   # noqa: ANN401
         if isinstance(raw, list):
             # zenodo serialization
             return {"enabled": len(raw) > 0}
         return raw
-
-    @property
-    def _generic_arguments(self) -> SimpleNamespace:
-        return generic_arguments.actual_types(self)
 
     async def delete(self):
         return await self._connection.delete(
@@ -64,7 +55,7 @@ class Record[
 
         ret = await self._connection.put(
             url=self.links.self_,
-            data=self.model_dump_json(),
+            data=self.model_dump_json(),    # type: ignore
             headers={
                 **headers,
                 "Content-Type": "application/json",
@@ -75,22 +66,20 @@ class Record[
 
     def requests(
         self,
-    ) -> RecordRequestsClient[RequestBase, RequestTypeBase]:
-        return RecordRequestsClient[
-            self._generic_arguments.RequestBase,
-            self._generic_arguments.RequestTypeBase,
-        ](self._connection, self.links.requests, self.links.applicable_requests)
+    ) -> RecordRequestsClient:
+        return RecordRequestsClient(self._connection, self.links.requests,
+                                    self.links.applicable_requests)
 
-    def files(self) -> FilesClient[FileBase]:
-        return FilesClient[self._generic_arguments.FileBase](
+    def files(self) -> FilesClient:
+        return FilesClient(
             self._connection, self.links.files
         )
 
 
-class RecordList[RecordBase](RESTList[RecordBase]):  # noqa (RequestBase looks like not defined in pycharm)
+class RecordList(RESTList[Record]):
     sortBy: Optional[str]
     aggregations: Optional[Any]
-    hits: list[RecordBase]
+    hits: list[Record]
 
 
 class CreateURL(Protocol):
@@ -105,7 +94,7 @@ class SearchURL(Protocol):
     def __call__(self) -> YarlURL: ...
 
 
-class RecordClient[RecordBase: Record]:
+class RecordClient:
     def __init__(
         self,
         connection: Connection,
@@ -120,18 +109,14 @@ class RecordClient[RecordBase: Record]:
         self._read_url = read_url
         self._search_url = search_url
 
-    @property
-    def _generic_arguments(self) -> SimpleNamespace:
-        return generic_arguments.actual_types(self)
-
     async def create_record(
         self,
         data: dict,
-        community: str = None,
-        workflow: str = None,
+        community: str|None = None,
+        workflow: str|None = None,
         idempotent: bool = False,
         files_enabled: bool = True,
-    ) -> RecordBase:
+    ) -> Record:
         """Create a new record in the repository.
 
         :param data:            the metadata of the record
@@ -169,15 +154,15 @@ class RecordClient[RecordBase: Record]:
             url=create_url,
             json=data,
             idempotent=idempotent,
-            result_class=self._generic_arguments.RecordBase,
+            result_class=Record,
         )
 
     async def read_record(
         self,
         *,
-        record_id: Optional[str] = None,
+        record_id: str,
         expand=False,
-    ) -> RecordBase:
+    ) -> Record:
         """Read a record from the repository. Please provide either record_id or record_url, not both.
 
         :param record_id:       the id of the record. Could be either pid or url
@@ -189,7 +174,7 @@ class RecordClient[RecordBase: Record]:
             record_url = str(URL(record_url).with_query(expand="true"))
         return await self._connection.get(
             url=record_url,
-            result_class=self._generic_arguments.RecordBase,
+            result_class=Record,
         )
 
     async def search(
@@ -199,7 +184,7 @@ class RecordClient[RecordBase: Record]:
         page: Optional[int] = None,
         size: Optional[int] = None,
         **facets,
-    ) -> RecordList[RecordBase]:
+    ) -> RecordList:
         search_url: YarlURL = self._search_url()
         query = {**facets}
         if q:
@@ -212,5 +197,5 @@ class RecordClient[RecordBase: Record]:
         return await self._connection.get(
             url=search_url,
             params=query,
-            result_class=RecordList[self._generic_arguments.RecordBase],
+            result_class=RecordList,
         )

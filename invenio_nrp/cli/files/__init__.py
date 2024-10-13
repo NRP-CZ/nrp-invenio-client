@@ -5,6 +5,8 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
+"""Commandline client for files."""
+
 from .download import download_files
 from .list import list_files
 from .update import update_file_metadata

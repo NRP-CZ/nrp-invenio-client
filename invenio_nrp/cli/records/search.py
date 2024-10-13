@@ -5,6 +5,8 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
+"""Command-line interface for searching records."""
+
 from pathlib import Path
 from typing import Optional
 
@@ -20,7 +22,6 @@ from invenio_nrp.cli.records.table_formatters import (
 )
 from invenio_nrp.client import AsyncClient
 from invenio_nrp.client.async_client.records import RecordClient, RecordList
-from invenio_nrp.client.async_client.rest import BaseRecord
 
 
 @run_async
@@ -46,7 +47,8 @@ async def search_records(
     output: Annotated[
         Optional[Path], typer.Option("--output", "-o", help="Save the output to a file")
     ] = None,
-):
+) -> None:
+    """Return a page of records inside repository that match the given query."""
     console = Console()
     config = Config.from_file()
 
@@ -70,8 +72,18 @@ async def search_records(
 
 
 async def _prepare_search(
-    community, config, drafts, model, page, published, query, repository, size, sort
-):
+    community: str | None,
+    config: Config,
+    drafts: bool,
+    model: str | None,
+    page: int,
+    published: bool,
+    query: str | None,
+    repository: str | None,
+    size: int,
+    sort: str | None,
+) -> tuple[RecordClient, dict]:
+    """Prepare the search for records."""
     client = AsyncClient(alias=repository, config=config)
     records_api: RecordClient = (
         client.published_records(model) if published else client.user_records(model)
@@ -84,9 +96,9 @@ async def _prepare_search(
     if query:
         args["q"] = query
     if page is not None:
-        args["page"] = page
+        args["page"] = str(page)
     if size is not None:
-        args["size"] = size
+        args["size"] = str(size)
     if drafts:
         args["status"] = "draft"
     return records_api, args
@@ -113,7 +125,8 @@ async def scan_records(
     output: Annotated[
         Optional[Path], typer.Option("--output", "-o", help="Save the output to a file")
     ] = None,
-):
+) -> None:
+    """Return all records inside repository that match the given query."""
     console = Console()
     config = Config.from_file()
 
@@ -141,10 +154,9 @@ async def scan_records(
         printer.multiple()
 
         while True:
-            record_list: RecordList[BaseRecord] = await records_api.search(**args)
+            record_list: RecordList = await records_api.search(**args)
             new_entry_seen = False
 
-            entry: BaseRecord
             for entry in record_list:
                 link = str(entry.links.self_)
                 if link not in urls:

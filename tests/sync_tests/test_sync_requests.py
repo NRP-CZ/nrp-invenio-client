@@ -12,22 +12,15 @@
 #
 
 
-#
-# Copyright (C) 2024 CESNET z.s.p.o.
-#
-# invenio-nrp is free software; you can redistribute it and/or
-# modify it under the terms of the MIT License; see LICENSE file for more
-# details.
-#
 import pytest
 import rich
 
 from invenio_nrp.client import SyncClient
-from invenio_nrp.client.errors import RepositoryCommunicationError
 from invenio_nrp.client.sync_client.files import File
 from invenio_nrp.client.sync_client.records import Record
 from invenio_nrp.client.sync_client.request_types import RequestType
 from invenio_nrp.client.sync_client.requests import Request
+from invenio_nrp.client.errors import RepositoryCommunicationError
 
 
 def test_publish_request_via_applicable(local_client, local_records, draft_record):

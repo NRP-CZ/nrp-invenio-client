@@ -6,37 +6,17 @@
 # details.
 #
 """Memory-based data source."""
+import contextlib
+from typing import AsyncIterator
 
 from ..os import DataReader
 from .base import DataSource
-
-
-class MemoryReader:
-    """A reader for in-memory data."""
-
-    def __init__(self, data):
-        """Initialize the reader.
-
-        :param data:        the data that will be read
-        """
-        self._data = data
-
-    def __aiter__(self):
-        """We are our own iterator."""
-        return self
-
-    async def __anext__(self):
-        """Simulate normal file iteration."""
-        if self._data:
-            ret = self._data
-            self._data = None
-            return ret
-        else:
-            raise StopAsyncIteration
+from .memory_reader import MemoryReader
 
 
 class MemoryDataSource(DataSource):
     """A data source that reads data from memory."""
+    has_range_support = True
 
     def __init__(self, data: bytes, content_type: str):
         """Initialize the data source.
@@ -47,8 +27,10 @@ class MemoryDataSource(DataSource):
         self._data = data
         self._content_type = content_type
 
-    async def open(self, offset: int = 0) -> DataReader:
-        return MemoryReader(self._data[offset:])  # noqa ignore type
+    # TODO: how to correctly type this?
+    @contextlib.asynccontextmanager
+    async def open(self, offset: int = 0) -> AsyncIterator[DataReader]: # type: ignore
+        yield MemoryReader(self._data[offset:])  # noqa ignore type
 
     async def size(self) -> int:
         return len(self._data)

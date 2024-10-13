@@ -13,7 +13,6 @@ from types import SimpleNamespace
 from invenio_nrp.config import Config, RepositoryConfig
 from invenio_nrp.types import RepositoryInfo
 
-from ...generic import generic_arguments
 from .connection import Connection
 from .files import File
 from .info import AsyncInfoClient
@@ -23,17 +22,12 @@ from .requests import Request, RequestClient
 from .rest import BaseRecord
 
 
-class AsyncClient[
-    RecordBase: BaseRecord,
-    FileBase: File,
-    RequestBase: Request,
-    RequestTypeBase: RequestType[Request],
-](Connection):
+class AsyncClient(Connection):
     def __init__(
         self,
-        alias: str = None,
-        repository: RepositoryConfig = None,
-        config: Config = None,
+        alias: str|None = None,
+        repository: RepositoryConfig|None = None,
+        config: Config|None = None,
     ):
         """Initialize the client.
 
@@ -51,24 +45,6 @@ class AsyncClient[
 
         super().__init__(config, repository_config)
 
-    @property
-    def _generic_arguments(self) -> SimpleNamespace:
-        """Get the actual types of generic arguments passed to the client."""
-        DefaultRequestClass = Request
-        DefaultRequestTypeClass = RequestType[Request]
-        DefaultFileClass = File
-        DefaultRecordClass = Record[
-            DefaultFileClass, DefaultRequestClass, DefaultRequestTypeClass
-        ]
-
-        return generic_arguments.actual_types(
-            self,
-            RecordBase=DefaultRecordClass,
-            FileBase=DefaultFileClass,
-            RequestBase=DefaultRequestClass,
-            RequestTypeBase=DefaultRequestTypeClass,
-        )
-
     async def info(self, refresh=False) -> RepositoryInfo:
         """Retrieve info endpoint from the repository.
 
@@ -85,13 +61,13 @@ class AsyncClient[
             self,
         ).info(refresh)
 
-    def published_records(self, model=None) -> RecordClient[RecordBase]:
+    def published_records(self, model=None) -> RecordClient:
         """Get a client for the records endpoint.
 
         :param model: The model to use for the records endpoint, will default to all records if not provided.
         :return: A client for the records endpoint
         """
-        return RecordClient[self._generic_arguments.RecordBase](
+        return RecordClient(
             self,
             model,
             create_url=partial(self._repository_config.create_url, model),
@@ -99,13 +75,13 @@ class AsyncClient[
             search_url=partial(self._repository_config.search_url, model),
         )
 
-    def user_records(self, model=None) -> RecordClient[RecordBase]:
+    def user_records(self, model=None) -> RecordClient:
         """Get a client for the records endpoint.
 
         :param model: The model to use for the records endpoint, will default to all records if not provided.
         :return: A client for the records endpoint
         """
-        return RecordClient[self._generic_arguments.RecordBase](
+        return RecordClient(
             self,
             model,
             create_url=partial(self._repository_config.create_url, model),
@@ -113,11 +89,11 @@ class AsyncClient[
             search_url=partial(self._repository_config.user_search_url, model),
         )
 
-    def requests(self) -> RequestClient[RequestBase]:
+    def requests(self) -> RequestClient:
         """Get a client for the requests endpoint, giving API for requests that the user has access to
 
         :return: API for requests
         """
-        return RequestClient[self._generic_arguments.RequestBase](
+        return RequestClient(
             self, self._repository_config.requests_url
         )

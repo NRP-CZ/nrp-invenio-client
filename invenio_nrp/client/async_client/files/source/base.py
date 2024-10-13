@@ -7,15 +7,16 @@
 #
 """Protocol for data sources."""
 
-from typing import Protocol
+from typing import Protocol, AsyncContextManager
 
 from ..os import DataReader
 
 
 class DataSource(Protocol):
     """Protocol for data sources."""
+    has_range_support: bool = False
 
-    async def open(self, offset: int = 0) -> DataReader:
+    async def open(self, offset: int = 0) -> AsyncContextManager[DataReader]:
         """Open the data source for reading.
 
         :param offset:      where to start reading from

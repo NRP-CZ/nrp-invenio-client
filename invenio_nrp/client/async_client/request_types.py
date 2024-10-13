@@ -10,7 +10,6 @@
 from types import SimpleNamespace
 from typing import Optional
 
-from ...generic import generic_arguments
 from ...types import Model, YarlURL
 from .requests import Request
 from .rest import RESTList, RESTObject
@@ -30,7 +29,7 @@ class RequestTypeLinks(Model):
     """Actions that can be performed on the request type."""
 
 
-class RequestType[RequestBase: Request](RESTObject):
+class RequestType(RESTObject):
     """A type of request that the user can apply for. An example might be a request for access to a dataset,
     publish draft request, assign doi request, ...
     """
@@ -41,31 +40,25 @@ class RequestType[RequestBase: Request](RESTObject):
     links: RequestTypeLinks
     """Links on the request type object."""
 
-    @property
-    def _generic_arguments(self) -> SimpleNamespace:
-        return generic_arguments.actual_types(self)
-
-    async def create(self, payload, submit=False) -> RequestBase:
+    async def create(self, payload, submit=False) -> Request:
         """Create a new request of this type."""
-        request: RequestBase = await self._connection.post(
+        request: Request = await self._connection.post(
             url=self.links.actions.create,
             json=payload,
-            result_class=self._generic_arguments.RequestBase,
+            result_class=Request,
         )
         if submit:
             return await request.submit()
         return request
 
 
-class RequestTypeList[RequestTypeBase: RequestType[Request]](
-    RESTList[RequestTypeBase]  # noqa (RequestTypeBase looks like not defined in pycharm)
-):
+class RequestTypeList(RESTList[RequestType]):
     """A list of request types as returned from the API"""
 
-    hits: list[RequestTypeBase]
+    hits: list[RequestType]
     """Internal list of request types"""
 
-    def __getitem__(self, type_id) -> RequestTypeBase:
+    def __getitem__(self, type_id) -> RequestType:
         """Returns a request type by its type_id
 
         :param type_id:     type_id, stays stable regardless of server version
@@ -74,6 +67,7 @@ class RequestTypeList[RequestTypeBase: RequestType[Request]](
         for hit in self.hits:
             if hit.type_id == type_id:
                 return hit
+        raise KeyError(f"Request type {type_id} not found")
 
     def keys(self):
         """Return all type_ids of the request types in this list.

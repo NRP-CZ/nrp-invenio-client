@@ -6,6 +6,7 @@
 # details.
 #
 """Client for the .well-known/repository endpoint."""
+from typing import cast
 
 from pydantic import RootModel
 
@@ -62,7 +63,7 @@ class AsyncInfoClient:
             # not a NRP based repository, suppose that it is plain invenio rdm
             self._repository_config.info = self._make_rdm_info()
 
-        return self._repository_config.info
+        return cast(RepositoryInfo, self._repository_config.info)
 
     def _make_rdm_info(self):
         """If repository does not provide the info endpoint, we assume it is a plain invenio rdm."""

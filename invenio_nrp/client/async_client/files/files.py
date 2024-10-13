@@ -14,7 +14,6 @@ from typing import Any, Optional, Type
 
 from pydantic import fields
 
-from invenio_nrp.generic import generic_arguments
 from invenio_nrp.types import Model, YarlURL
 
 from ..connection import Connection
@@ -76,23 +75,23 @@ class File(RESTObject):
         )
 
 
-class FilesList[FileBase: File](RESTObject):
+class FilesList(RESTObject):
     """A list of files, as stored in ...<record_id>/files"""
 
     enabled: bool
     """Whether the files are enabled on the record."""
 
-    entries: list[FileBase] = fields.Field(default_factory=list)
+    entries: list[File] = fields.Field(default_factory=list)
     """List of files on the record."""
 
-    def __getitem__(self, key: str) -> FileBase:
+    def __getitem__(self, key: str) -> File:
         for v in self.entries:
             if v.key == key:
                 return v
         raise KeyError(f"File with key {key} not found")
 
 
-class FilesClient[FileBase: File]:
+class FilesClient:
     """Client for the files endpoint. Normally not used directly but from AsyncClient().records.read(...).files"""
 
     def __init__(self, connection: Connection, files_endpoint: YarlURL):
@@ -104,18 +103,11 @@ class FilesClient[FileBase: File]:
         self._connection = connection
         self._files_endpoint = files_endpoint
 
-    @property
-    def _generic_arguments(self) -> SimpleNamespace:
-        """Returns the actual types of the generic arguments.
-        :return: ns.FileBase containing the actual type File type
-        """
-        return generic_arguments.actual_types(self)
-
-    async def list(self) -> FilesList[FileBase]:
+    async def list(self) -> FilesList:
         """List all files on the record and their upload status."""
         return await self._connection.get(
             url=self._files_endpoint,
-            result_class=FilesList[self._generic_arguments.FileBase],
+            result_class=FilesList,
         )
 
     async def upload(
@@ -124,8 +116,8 @@ class FilesClient[FileBase: File]:
         metadata: dict[str, Any],
         file: DataSource | str | Path,
         transfer_type: TransferType = TransferType.LOCAL,
-        transfer_metadata: dict = None,
-    ) -> FileBase:
+        transfer_metadata: dict|None = None,
+    ) -> File:
         """Upload a file to the repository.
 
         :param key:                 the key (filename) of the file
@@ -135,7 +127,6 @@ class FilesClient[FileBase: File]:
         :param transfer_metadata:   extra metadata for the transfer
         :return:                    metadata of the uploaded file
         """
-        File: Type[FileBase] = self._generic_arguments.FileBase
 
         if isinstance(file, (str, Path)):
             from .source.file import FileDataSource
@@ -159,10 +150,10 @@ class FilesClient[FileBase: File]:
 
         await transfer.prepare(self._connection, self._files_endpoint, transfer_payload)
 
-        initialized_upload: FilesList[File] = await self._connection.post(
+        initialized_upload: FilesList = await self._connection.post(
             url=self._files_endpoint,
             json=[transfer_payload],
-            result_class=FilesList[File],
+            result_class=FilesList,
         )
 
         initialized_upload_metadata = initialized_upload[key]

@@ -5,6 +5,8 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
+"""Command-line interface for downloading records."""
+
 from pathlib import Path
 from typing import Optional
 
@@ -21,6 +23,7 @@ from invenio_nrp.client.async_client.files.sink.file import FileSink
 
 @run_async
 async def download_record(
+    record_ids: Annotated[list[str], typer.Argument(help="Record ID")],
     output: Annotated[
         Optional[Path], typer.Option("-o", help="Save the output to a file")
     ] = None,
@@ -35,8 +38,8 @@ async def download_record(
         bool, typer.Option(help="Include only published records")
     ] = True,
     draft: Annotated[bool, typer.Option(help="Include only drafts")] = False,
-    record_ids: Annotated[list[str], typer.Argument(help="Record ID")] = None,
-):
+) -> None:
+    """Download a record from the repository."""
     console = Console()
     config = Config.from_file()
 
@@ -66,17 +69,18 @@ async def download_record(
 
 async def download_single_record(
     downloader: Downloader,
-    record_id,
-    console,
-    config,
-    repository,
-    model,
-    output,
-    output_format,
-    published,
-    draft,
-    expand,
-):
+    record_id: str,
+    console: Console,
+    config: Config,
+    repository: str | None,
+    model: str | None,
+    output: Path | None,
+    output_format: OutputFormat | None,
+    published: bool,
+    draft: bool,
+    expand: bool,
+) -> None:
+    """Download record with the given id together with its files."""
     # 1. download record metadata
     if not output:
         output = Path("{id}")
@@ -97,7 +101,7 @@ async def download_single_record(
         expand,
     )
 
-    output_dir = output.parent
+    output_dir = output.parent if output and output.parent else Path.cwd()
 
     # TODO: better way of handling tls verification
     if not repository_config.verify_tls:

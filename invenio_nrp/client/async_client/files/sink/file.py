@@ -9,6 +9,7 @@
 
 import contextlib
 from pathlib import Path
+from typing import AsyncContextManager, AsyncIterator
 
 from ..os import DataWriter, open_file
 from .base import DataSink, SinkState
@@ -23,8 +24,7 @@ class FileSink(DataSink):
         """
         self._fpath = fpath
         self._state = SinkState.NOT_ALLOCATED
-        self._file = None
-        self._chunks = []
+        self._file: DataWriter | None = None
 
     async def allocate(self, size: int) -> None:
         self._file = await open_file(self._fpath, mode="wb")
@@ -32,29 +32,21 @@ class FileSink(DataSink):
         self._state = SinkState.ALLOCATED
 
     @contextlib.asynccontextmanager
-    async def open_chunk(self, offset: int = 0) -> DataWriter:
+    async def open_chunk(self, offset: int = 0) -> AsyncIterator[DataWriter]:   # type: ignore
         if self._state != SinkState.ALLOCATED:
             raise RuntimeError("Sink not allocated")
 
         chunk = await open_file(self._fpath, mode="r+b")
         await chunk.seek(offset)
-        self._chunks.append(chunk)
         yield chunk
         await chunk.close()
-        self._chunks.remove(chunk)
 
     async def close(self) -> None:
-        for chunk in self._chunks:
-            try:
-                await chunk.close()
-            except:  # noqa just catch everything here
-                pass
         if self._file is not None:
             try:
                 await self._file.close()
             except:  # noqa just catch everything here
                 pass
-        self._chunks = []
         self._file = None
 
         self._state = SinkState.CLOSED

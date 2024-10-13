@@ -5,10 +5,12 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
+"""Main commandline client."""
+
 from __future__ import annotations
 
 import dataclasses
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional
 
 from typer import Typer
 
@@ -75,23 +77,35 @@ commands = [
     ("variables", "remove", remove_variable),
     ("variables", "list", list_variables),
 ]
+"""CLI commands."""
 
 
 @dataclasses.dataclass
 class CommandTreeNode:
-    children: dict[str, CommandTreeNode] = dataclasses.field(default_factory=dict)
-    command: Optional[Callable] = None
+    """A tree of command groups/commands."""
 
-    def register_commands(self, parent: Typer):
+    children: dict[str, CommandTreeNode] = dataclasses.field(default_factory=dict)
+    """Child nodes of this group."""
+    command: Optional[Callable[..., None]] = None
+    """Command to execute at this node, if the children are empty."""
+
+    def register_commands(self, parent_typer_group: Typer) -> None:
+        """Register the commands to parent's typer group."""
         for child_name, child in self.children.items():
             if child.children:
                 grp = Typer()
                 child.register_commands(grp)
-                parent.add_typer(grp, name=child_name)
+                parent_typer_group.add_typer(grp, name=child_name)
             else:
-                parent.command(child_name)(child.command)
+                parent_typer_group.command(child_name)(child.command)
 
-    def add_command(self, command_decl: Tuple):
+    def add_command(
+        self,
+        command_decl: tuple[Callable[..., None]]
+        | tuple[str, Callable[..., None]]
+        | tuple[str, str, Callable[..., None]],
+    ) -> None:
+        """Add a command to the tree."""
         if len(command_decl) == 1:
             command = command_decl[0]
             assert not self.command, f"Can not set {command} to node {self}"
@@ -99,6 +113,7 @@ class CommandTreeNode:
             self.command = command
         else:
             command_name = command_decl[0]
+            assert isinstance(command_name, str), f"Invalid command name {command_name}"
             if command_name not in self.children:
                 self.children[command_name] = CommandTreeNode()
             self.children[command_name].add_command(
@@ -106,14 +121,14 @@ class CommandTreeNode:
             )
 
 
-def generate_typer_command():
-    import typer
-
-    app = typer.Typer()
+def generate_typer_command() -> Typer:
+    """Register all commands into the typer app."""
+    app = Typer()
 
     tree_root = CommandTreeNode()
     for cmd in commands:
-        tree_root.add_command(cmd)
+        # ignore type as mypy says that the function can not be cast to Callable[..., None]
+        tree_root.add_command(cmd)  # type: ignore
 
     tree_root.register_commands(app)
 
@@ -121,6 +136,9 @@ def generate_typer_command():
 
 
 app = generate_typer_command()
+"""Typer main application."""
+
 
 if __name__ == "__main__":
+    # call the application if run as a script
     app()

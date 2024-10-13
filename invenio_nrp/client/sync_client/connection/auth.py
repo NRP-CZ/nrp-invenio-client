@@ -9,11 +9,11 @@
 import requests.auth
 from yarl import URL
 
-from invenio_nrp.types import URLBearerToken
+from invenio_nrp.client.async_client.connection.auth import BearerTokenForHost
 
 
 class BearerAuthentication(requests.auth.AuthBase):
-    def __init__(self, tokens: list[URLBearerToken]):
+    def __init__(self, tokens: list[BearerTokenForHost]):
         self.tokens = tokens
 
     def __call__(self, r):

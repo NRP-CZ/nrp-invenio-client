@@ -22,12 +22,12 @@ class LocalTransfer(Transfer):
         initialized_upload: File,
         file: DataSource,
     ) -> None:
-        open_file = await file.open()
+        async with file.open() as open_file:    # type: ignore
 
-        await connection.put_stream(
-            url=initialized_upload.links.content,
-            file=open_file,
-        )
+            await connection.put_stream(
+                url=initialized_upload.links.content,
+                file=open_file,
+            )
 
     async def prepare(
         self, connection: Connection, files_link: str, transfer_payload: dict

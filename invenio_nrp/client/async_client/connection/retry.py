@@ -35,7 +35,7 @@ class ServerAssistedRetry(ExponentialRetry):
         :param attempt: The number of the current attempt.
         :param response: The response of the last request.
         """
-        if response.status == 429:
+        if response and response.status == 429:
             retry_after_header = response.headers.get("Retry-After")
             if retry_after_header:
                 return float(retry_after_header) + 1

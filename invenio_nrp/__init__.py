@@ -5,6 +5,7 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
+"""API and commandline client for invenio repositories."""
 
 from .client import SyncClient
 from .config import Config

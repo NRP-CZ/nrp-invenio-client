@@ -13,6 +13,7 @@
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
+"""NRP Invenio Client documentation."""
 
 project = "NRP Invenio Client"
 copyright = "2024, Miroslav Simek"

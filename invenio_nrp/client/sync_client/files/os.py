@@ -6,15 +6,15 @@
 # details.
 #
 import os
-from io import RawIOBase
+from io import IOBase
 from pathlib import Path
 
-type DataReader = RawIOBase
-type DataWriter = RawIOBase
+type DataReader = IOBase
+type DataWriter = IOBase
 
 
 def open_file(_fpath: Path, mode: str) -> DataReader | DataWriter:
-    r: DataReader | DataWriter = open(_fpath, mode=mode)  # noqa
+    r: DataReader | DataWriter = open(_fpath, mode=mode)  # type: ignore
     return r
 
 

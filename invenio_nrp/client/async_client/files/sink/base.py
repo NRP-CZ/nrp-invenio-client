@@ -6,11 +6,12 @@
 # details.
 #
 """Protocol for data sinks."""
-
+import contextlib
 from enum import StrEnum, auto
 from typing import Protocol
 
 from ..os import DataWriter
+from typing import AsyncContextManager
 
 
 class SinkState(StrEnum):
@@ -34,7 +35,7 @@ class DataSink(Protocol):
         """
         ...
 
-    async def open_chunk(self, offset: int = 0) -> DataWriter:
+    async def open_chunk(self, offset: int = 0) -> AsyncContextManager[DataWriter]:
         """Get a writer for the sink, starting at the given offset.
 
         :param offset: The offset in bytes from the start of the sink.

@@ -7,11 +7,12 @@
 #
 """CLI commands for managing repositories."""
 
+import sys
 import urllib
 import urllib.parse
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Generator, Optional
+from typing import TYPE_CHECKING, Any, Generator, Optional
 
 import typer
 from rich import box
@@ -22,7 +23,7 @@ from typing_extensions import Annotated
 from invenio_nrp import Config, SyncClient
 from invenio_nrp.config.repository import RepositoryConfig
 
-from .base import OutputFormat, OutputWriter, format_output
+from .base import OutputFormat, OutputWriter
 
 if TYPE_CHECKING:
     from invenio_nrp.types import ModelInfo
@@ -63,7 +64,7 @@ def add_repository(
     try:
         config.get_repository(alias)
         console.print(f'[red]Repository with alias "{alias}" already exists[/red]')
-        return 1
+        sys.exit(1)
     except KeyError:
         pass
 
@@ -120,7 +121,7 @@ def remove_repository(
     """Remove a repository from the configuration."""
     console = Console()
     console.print()
-    client = SyncClient()
+    client: SyncClient = SyncClient()
 
     client.config.remove_repository(alias)
     console.print(f"[green]Removed repository {alias}[/green]")
@@ -203,9 +204,10 @@ def output_tables(*, config: Config, verbose: bool, **kwargs: dict) -> Generator
             yield from output_repository_info_table(config, repo)
 
 
-# TODO: should return iterable of tables ???
 def output_repository_info_table(
-    config: Config, repo: RepositoryConfig
+    config: Config,
+    repo: RepositoryConfig,
+    **kwargs: Any,  # noqa: ANN401
 ) -> Generator[Table]:
     """Output the information about a repository formatted as a table."""
     table = Table(
@@ -274,20 +276,18 @@ def describe_repository(
     """Get information about a repository."""
     console = Console()
     config = Config.from_file()
-    client = SyncClient(alias=alias, config=config)
+    client: SyncClient = SyncClient(alias=alias, config=config)
 
     if refresh:
         client.info(refresh=refresh)
         client.config.save()
 
-    if output_format == OutputFormat.TABLE or output_format is None:
-        output_repository_info_table(config, console, client.repository_config)
-    else:
-        data = format_output(
-            output_format, dump_repo_configuration(client.repository_config)
-        )
-
-        if output_file:
-            output_file.write_text(data)
-        else:
-            console.print(data)
+    with OutputWriter(
+        output_file,
+        output_format,
+        console,
+        partial(
+            output_repository_info_table, config=config, repo=client.repository_config
+        ),
+    ) as printer:
+        printer.output(dump_repo_configuration(client.repository_config))

@@ -46,6 +46,7 @@ class Variables(BaseModel):
             self._config_file_path = path
         else:
             path = self._config_file_path
+        assert path, "No path to save the configuration to."
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             self.model_dump_json(indent=4, by_alias=True),
@@ -69,9 +70,9 @@ class Variables(BaseModel):
         """Delete a variable."""
         del self.variables[key]
 
-    def get(self, key: str) -> Optional[list[str]]:
+    def get(self, key: str, default: list[str] | None = None) -> list[str] | None:
         """Get the value of a variable, returning None if the variable has not been found."""
-        return self.variables.get(key)
+        return self.variables.get(key, default)
 
     def items(self) -> Iterable[tuple[str, list[str]]]:
         """Return the variables as an iterable of (key, value)."""

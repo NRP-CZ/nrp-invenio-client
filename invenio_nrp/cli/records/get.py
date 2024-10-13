@@ -5,6 +5,8 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
+"""Command line interface for getting records."""
+
 from pathlib import Path
 from typing import Optional
 
@@ -16,14 +18,17 @@ from yarl import URL
 
 from invenio_nrp import Config
 from invenio_nrp.cli.base import OutputFormat, OutputWriter, run_async
+from invenio_nrp.cli.records.record_file_name import create_output_file_name
 from invenio_nrp.cli.records.table_formatters import format_record_table
 from invenio_nrp.client import AsyncClient
-from invenio_nrp.client.async_client.records import RecordClient
+from invenio_nrp.client.async_client.records import Record, RecordClient
 from invenio_nrp.client.doi import resolve_doi
+from invenio_nrp.config import RepositoryConfig
 
 
 @run_async
 async def get_record(
+    record_ids: Annotated[list[str], typer.Argument(help="Record ID")],
     output: Annotated[
         Optional[Path], typer.Option("-o", help="Save the output to a file")
     ] = None,
@@ -38,8 +43,8 @@ async def get_record(
         bool, typer.Option(help="Include only published records")
     ] = True,
     draft: Annotated[bool, typer.Option(help="Include only drafts")] = False,
-    record_ids: Annotated[list[str], typer.Argument(help="Record ID")] = None,
-):
+) -> None:
+    """Get a record from the repository."""
     console = Console()
     config = Config.from_file()
     variables = config.load_variables()
@@ -68,24 +73,26 @@ async def get_record(
 
 
 async def get_single_record(
-    record_id,
-    console,
-    config,
-    repository,
-    model,
-    output,
-    output_format,
-    published,
-    draft,
-    expand,
-):
+    record_id: str,
+    console: Console,
+    config: Config,
+    repository: str | None,
+    model: str | None,
+    output: Path | None,
+    output_format: OutputFormat | None,
+    published: bool,
+    draft: bool,
+    expand: bool,
+) -> tuple[Record, Path | None, RepositoryConfig]:
+    """Get a single record from the repository and print/save it."""
     record, record_id, repository_config = await read_record(
         record_id, repository, config, expand, model, published
     )
 
-    output = create_output_file_name(
-        output, record.id or record_id, record, output_format
-    )
+    if output:
+        output = create_output_file_name(
+            output, str(record.id or record_id or "unknown_id"), record, output_format
+        )
     if output and output.parent:
         output.parent.mkdir(parents=True, exist_ok=True)
 
@@ -95,7 +102,15 @@ async def get_single_record(
     return record, output, repository_config
 
 
-async def read_record(record_id, repository, config, expand, model, published):
+async def read_record(
+    record_id: str,
+    repository: str | None,
+    config: Config,
+    expand: bool,
+    model: str | None,
+    published: bool,
+) -> tuple[Record, str, RepositoryConfig]:
+    """Read a record from the repository, returning the record, its id and the repository config."""
     record_id, repository_config = get_repository_from_record_id(
         record_id, config, repository
     )
@@ -109,53 +124,23 @@ async def read_record(record_id, repository, config, expand, model, published):
     return record, record_id, repository_config
 
 
-def create_output_file_name(output_name: Path, obj_id, obj, output_format, **kwargs):
-    # output name can contain variables inside {}. If it does, we will replace them with the values
-    # from the record
-    # we need to make sure that the expanded output name does not contain illegal combinations,
-    # such as /../ or /./ or leading '/' - we strip them if that is the case
-    if not output_name:
-        return None
+def get_repository_from_record_id(
+    record_id: str, config: Config, repository: str | None = None
+) -> tuple[str, RepositoryConfig]:
+    """Try to get a repository from the record id.
 
-    output_parts = output_name.parts if output_name else []
-    is_absolute = output_name.is_absolute()
-
-    transformed_parts = [
-        format_part(part, obj_id, obj, output_format, **kwargs) for part in output_parts
-    ]
-    transformed_parts = [part.replace("/", "") for part in transformed_parts]
-    transformed_parts = [part.replace("\\", "") for part in transformed_parts]
-    transformed_parts = [part.replace("..", "") for part in transformed_parts]
-    transformed_parts = [part for part in transformed_parts if part]
-
-    if is_absolute:
-        output_name = Path("/", *transformed_parts)
-    else:
-        output_name = Path(*transformed_parts).absolute()
-
-    return output_name
-
-
-def format_part(part, obj_id, obj, output_format: OutputFormat, **kwargs):
-    if "{" in part and "}" in part:
-        options = {
-            "id": obj_id,
-            "ext": f".{output_format.value}" if output_format else "table",
-            **(obj.model_dump(mode="json")),
-            **kwargs,
-        }
-        return part.format(**options)
-    return part
-
-
-def get_repository_from_record_id(record_id, config, repository):
+    :param record_id: The record id (might be id, url, doi)
+    :param config: The configuration of known repositories
+    :param repository: The optional repository alias to use. If not passed in, the call will try to
+                          resolve the repository from the record id.
+    """
     if record_id.startswith("doi:"):
         record_id = resolve_doi(record_id[4:])
     elif record_id.startswith("https://doi.org/"):
         record_id = resolve_doi(record_id[len("https://doi.org/") :])
 
     if repository:
-        repository_config = config.repositories.get(repository)
+        repository_config = config.get_repository(repository)
         return record_id, repository_config
 
     if not record_id.startswith("https://"):
@@ -164,17 +149,17 @@ def get_repository_from_record_id(record_id, config, repository):
     repository_config = config.get_repository_from_url(record_id)
 
     # if it is an api path, return it as it is
-    record_id = URL(record_id)
-    if record_id.path.startswith("/api/"):
+    record_url = URL(record_id)
+    if record_url.path.startswith("/api/"):
         return str(record_id), repository_config
 
     # try to head the record to get the id
     resp = requests.head(
-        str(record_id), allow_redirects=True, verify=repository_config.verify_tls
+        str(record_url), allow_redirects=True, verify=repository_config.verify_tls
     )
     resp.raise_for_status()
     api_url = resp.links.get("linkset", {}).get("url")
     if api_url:
         return api_url, repository_config
     else:
-        return str(record_id), repository_config
+        return str(record_url), repository_config

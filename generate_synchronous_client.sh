@@ -5,8 +5,9 @@ set -e
 cd "$(dirname "$0")"
 
 # Generate synchronous client from the asynchronous client
-export skipped_directories=( "connection" )
-export skipped_files=( "files/downloader.py" "files/os.py" "test_async_parallel_files.py" "__init__.py")
+export skipped_directories=( "connection" "files/downloader")
+export skipped_files=( "files/downloader.py" "files/os.py" "test_async_parallel_files.py" "__init__.py"
+"files/source/memory_reader.py" "files/sink/memory_writer.py")
 
 isSkipped () {
   local fn="$1"
@@ -27,6 +28,21 @@ isSkipped () {
   done
 
   return 1
+}
+
+removeHeadComments () {
+  IFS=''
+  removing=1
+  while read LINE ; do
+    if [[ $removing -eq 1 ]] ; then
+      if [[ "$LINE" =~ ^# ]] ; then
+        continue
+      else
+        removing=0
+      fi
+    fi
+    echo "$LINE"
+  done
 }
 
 convertFile () {
@@ -54,9 +70,14 @@ EOF
       sed 's/__aiter__/__iter__/g' | \
       sed 's/__anext__/__next__/g' | \
       sed 's/StopAsyncIteration/StopIteration/g' | \
+      sed 's/AsyncIterator/Iterator/g' | \
+      sed 's/AsyncIterable/Iterable/g' | \
+      sed 's/AsyncGenerator/Generator/g' | \
+      sed 's/AsyncContextManager/ContextManager/g' | \
       sed 's/async_client/sync_client/g' | \
       sed 's/_async_/_sync_/g' | \
-      sed 's/Async/Sync/g' \
+      sed 's/Async/Sync/g' | \
+      removeHeadComments \
   >> "$ofn"
 }
 

@@ -5,6 +5,7 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
+"""Commandline client for records."""
 
 from .create import create_record
 from .download import download_record

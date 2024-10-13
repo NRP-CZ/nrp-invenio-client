@@ -5,10 +5,11 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
+"""Commandline client for updating metadata of files."""
+
 from typing import Optional
 
 import typer
-from rich.console import Console
 from typing_extensions import Annotated
 
 from invenio_nrp import Config
@@ -30,8 +31,8 @@ async def update_file_metadata(
         bool, typer.Option(help="Include only published records")
     ] = True,
     draft: Annotated[bool, typer.Option(help="Include only drafts")] = False,
-):
-    console = Console()
+) -> None:
+    """Update the metadata of a file in a record."""
     config = Config.from_file()
     variables = config.load_variables()
 
@@ -50,15 +51,17 @@ async def update_file_metadata(
     )
 
     metadata = metadata or "{}"
-    metadata = read_metadata(metadata)
+    metadata_json = read_metadata(metadata)
+    assert isinstance(metadata_json, dict), "Metadata must be a dictionary."
+
     if key:
-        metadata["key"] = key
+        metadata_json["key"] = key
     files = await record.files().list()
     file = next((f for f in files.entries if f.key == key), None)
     if not file:
         raise ValueError(
-            f"File with key {key} not found in record {record_id}: {", ".join([f.key for f in files])}"
+            f"File with key {key} not found in record {record_id}: {", ".join([f.key for f in files.entries])}"
         )
 
-    file.metadata = metadata
+    file.metadata = metadata_json
     await file.save()
