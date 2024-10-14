@@ -72,6 +72,7 @@ EOF
       sed 's/StopAsyncIteration/StopIteration/g' | \
       sed 's/AsyncIterator/Iterator/g' | \
       sed 's/AsyncIterable/Iterable/g' | \
+      sed 's/AsyncGenerator\[T, None\]/Generator[T, None, None]/g' | \
       sed 's/AsyncGenerator/Generator/g' | \
       sed 's/AsyncContextManager/ContextManager/g' | \
       sed 's/async_client/sync_client/g' | \

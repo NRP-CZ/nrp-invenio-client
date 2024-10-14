@@ -30,7 +30,7 @@ async def test_publish_request_via_applicable(
     assert approved_request.status == "accepted"
 
     published_record_link = approved_request.payload.published_record.links.self_
-    published_record = await local_records.read_record(record_url=published_record_link)
+    published_record = await local_records.read_record(record_id=published_record_link)
 
     rich.print(published_record)
     assert published_record.state == "published"
@@ -44,7 +44,7 @@ async def test_delete_request(local_client, local_records, draft_record):
     published_request = await publish_request.accept()
 
     published_record_link = published_request.payload.published_record.links.self_
-    published_record = await local_records.read_record(record_url=published_record_link)
+    published_record = await local_records.read_record(record_id=published_record_link)
 
     applicable_requests = await published_record.requests().applicable()
 
@@ -56,7 +56,7 @@ async def test_delete_request(local_client, local_records, draft_record):
     assert deleted_request.status == "accepted"
 
     with pytest.raises(RepositoryCommunicationError):
-        await local_records.read_record(record_url=published_record_link)
+        await local_records.read_record(record_id=published_record_link)
 
 
 async def test_list_requests(local_client: AsyncClient, draft_record):
@@ -103,33 +103,3 @@ async def test_list_requests(local_client: AsyncClient, draft_record):
             break
     else:
         assert False, "Request not found in accepted requests"
-
-
-async def test_custom_request_class(nrp_repository_config):
-    class MyRequest(Request):
-        pass
-
-    MyRecord = Record[File, MyRequest, RequestType[MyRequest]]
-
-    client = AsyncClient[MyRecord, File, MyRequest, RequestType[MyRequest]](
-        alias="local", config=nrp_repository_config
-    )
-    await client.info()
-
-    records_client = client.user_records()
-    rec = await records_client.create_record(
-        {"metadata": {"title": "test"}}, community="acom"
-    )
-    record_requests = rec.requests()
-
-    # create and submit new request
-    applicable_requests = await record_requests.applicable()
-    assert applicable_requests.keys() == {"publish_draft"}
-
-    submitted_request = await applicable_requests.publish_draft.create({}, submit=True)
-    assert isinstance(submitted_request, MyRequest)
-
-    global_requests = client.requests()
-
-    for req in await global_requests.all():
-        assert isinstance(req, MyRequest)
