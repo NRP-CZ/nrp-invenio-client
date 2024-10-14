@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -e
+set -x
 
 BASEDIR="$(realpath "$(dirname "$0")")"
 cd "$BASEDIR"

@@ -11,10 +11,8 @@ from invenio_nrp.client.async_client.records import Record
 from invenio_nrp.client.async_client.request_types import RequestType
 from invenio_nrp.client.async_client.requests import Request
 
-Rec = Record[File, Request, RequestType[Request]]
 
-
-async def test_list_files(draft_record: Rec, draft_record_with_files: Rec):
+async def test_list_files(draft_record: Record, draft_record_with_files: Record):
     files = draft_record.files()
     listing = await files.list()
     assert listing.enabled == False

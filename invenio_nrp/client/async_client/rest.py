@@ -130,7 +130,7 @@ class RESTList[T: RESTObject](RESTObject):
             )
         raise StopIteration()
 
-    async def all(self) -> AsyncGenerator[T]:
+    async def all(self) -> AsyncGenerator[T, None]:
         """Iterate over all records in all pages, starting from the current page."""
         page = self
         for rec in page.hits:

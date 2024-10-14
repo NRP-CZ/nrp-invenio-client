@@ -33,7 +33,7 @@ log = logging.getLogger("invenio_nrp.sync_client.connection")
 
 
 @contextlib.contextmanager
-def _cast_error() -> Generator[None]:
+def _cast_error() -> Generator[None, None, None]:
     """Catch all errors and cast them to Repository*Error.
 
     :return:
@@ -81,7 +81,9 @@ class Connection:
         self.auth = BearerAuthentication(tokens)
 
     @contextlib.contextmanager
-    def _client(self, idempotent: bool = False) -> Generator[requests.Session]:
+    def _client(
+        self, idempotent: bool = False
+    ) -> Generator[requests.Session, None, None]:
         """Create a new session with the repository and configure it with the token.
 
         :return: A new http client

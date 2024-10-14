@@ -9,7 +9,7 @@
 
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from yarl import URL
 
 from invenio_nrp.types import RepositoryInfo
@@ -43,6 +43,15 @@ class RepositoryConfig(BaseModel):
     class Config:  # noqa
         extra = "forbid"
 
+    @model_validator(mode="before")
+    @classmethod
+    def before_validate(cls, data: dict) -> dict:
+        """Prepare the data for validation."""
+        # backward compatibility
+        if "tls_verify" in data:
+            data["verify_tls"] = data.pop("tls_verify")
+        return data
+
     @property
     def well_known_repository_url(self) -> YarlURL:
         """Return URL to the well-known repository endpoint."""
@@ -72,9 +81,11 @@ class RepositoryConfig(BaseModel):
             return self.info.models[model].links.api
         return self.info.links.records
 
-    def read_url(self, model: str | None, record_id: str) -> YarlURL:
+    def read_url(self, model: str | None, record_id: str | URL) -> URL:
         """Return URL to a published record within a model."""
         assert self.info is not None
+        if isinstance(record_id, URL):
+            return record_id
         if record_id.startswith("https://"):
             return URL(record_id)
         model = model or self._default_model_name
@@ -82,9 +93,11 @@ class RepositoryConfig(BaseModel):
             return self.info.models[model].links.api / record_id
         return self.info.links.records / record_id
 
-    def user_read_url(self, model: str | None, record_id: str) -> YarlURL:
+    def user_read_url(self, model: str | None, record_id: str | URL) -> URL:
         """Return URL to a draft record within a model."""
         assert self.info is not None
+        if isinstance(record_id, URL):
+            return record_id
         if record_id.startswith("https://"):
             return URL(record_id)
         model = model or self._default_model_name

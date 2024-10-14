@@ -14,10 +14,8 @@ from invenio_nrp.client.async_client.records import Record
 from invenio_nrp.client.async_client.request_types import RequestType
 from invenio_nrp.client.async_client.requests import Request
 
-Rec = Record[File, Request, RequestType[Request]]
 
-
-async def test_create_many_files_in_parallel(draft_record_with_files: Rec):
+async def test_create_many_files_in_parallel(draft_record_with_files: Record):
     files = draft_record_with_files.files()
     data = b"Hello world!"
     print()

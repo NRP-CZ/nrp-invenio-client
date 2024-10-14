@@ -47,6 +47,9 @@ record:
     base-html-url: /simple/
     base-url: /simple/
 
+runtime-dependencies:
+  oarepo-dashboard: 1.0.0
+
 settings:
   i18n-languages:
   - en

@@ -48,16 +48,12 @@ async def test_get_record(local_client: AsyncClient):
     assert rec.id == rec2.id
 
     # read the record given the url
-    rec3 = await records_client.read_record(record_url=rec.links.self_)
+    rec3 = await records_client.read_record(record_id=rec.links.self_)
     assert rec.metadata == rec3.metadata
     assert rec.id == rec3.id
 
-    # giving both should fail
-    with pytest.raises(AssertionError):
-        await records_client.read_record(record_id=rec.id, record_url=rec.links.self_)
-
     # giving none should fail
-    with pytest.raises(AssertionError):
+    with pytest.raises(TypeError):
         await records_client.read_record()
 
 
@@ -141,36 +137,3 @@ async def test_read_all_records(local_client: AsyncClient):
     # and clean up
     for record in created_records:
         await record.delete()
-
-
-async def test_custom_record_class(nrp_repository_config):
-    class MyMetadata(Model):
-        title: str
-
-    class MyRecord(Record):
-        metadata: MyMetadata
-
-    client = AsyncClient[MyRecord, File, Request, RequestType](
-        alias="local", config=nrp_repository_config
-    )
-    await client.info()
-
-    assert client._generic_arguments.RecordBase == MyRecord
-
-    records_client = client.user_records
-    rec = await records_client().create_record(
-        {"metadata": {"title": "test"}}, community="acom"
-    )
-    assert isinstance(rec, MyRecord)
-    assert isinstance(rec.metadata, MyMetadata)
-    assert rec.metadata.title == "test"
-
-    rec2 = await records_client().read_record(record_id=rec.id)
-    assert isinstance(rec2, MyRecord)
-    assert isinstance(rec2.metadata, MyMetadata)
-    assert rec2.metadata.title == "test"
-
-    reclist = await records_client().search(size=1)
-    assert len(reclist) == 1
-    assert isinstance(reclist.hits[0], MyRecord)
-    assert isinstance(reclist.hits[0].metadata, MyMetadata)
