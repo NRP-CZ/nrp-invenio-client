@@ -1,0 +1,85 @@
+#
+# Copyright (C) 2024 CESNET z.s.p.o.
+#
+# invenio-nrp is free software; you can redistribute it and/or
+# modify it under the terms of the MIT License; see LICENSE file for more
+# details.
+#
+"""Bearer authentication support for aiohttp."""
+
+import dataclasses
+from typing import Optional
+
+from aiohttp import BasicAuth, ClientRequest, hdrs
+from yarl import URL
+
+from invenio_nrp.types import YarlURL
+
+
+class Authentication(BasicAuth):
+    """A generic authentication class that can be used to provide different types of authentication."""
+
+    # a little strange to inherit from BasicAuth, but it is the only way to
+    # provide different auth types to the ClientRequest
+
+    def apply(self, request: ClientRequest) -> None:
+        """Apply the authentication to the request.
+
+        :param request: aiohttp request where the authentication should be applied
+        """
+        raise NotImplementedError()
+
+
+class AuthenticatedClientRequest(ClientRequest):
+    """Implementation of the ClientRequest that handles different types of authentication (not only BasicAuth)."""
+
+    def update_auth(
+        self, auth: Optional[Authentication], trust_env: bool = False
+    ) -> None:
+        """Override the authentication in the request to allow non-basic auth methods."""
+        if not auth or not isinstance(auth, Authentication):
+            return super().update_auth(auth, trust_env)
+
+        auth.apply(self)
+
+
+@dataclasses.dataclass
+class BearerTokenForHost:
+    """URL and bearer token for the invenio repository."""
+
+    host_url: YarlURL
+    """URL of the repository."""
+
+    token: str
+    """Bearer token for the repository."""
+
+    def __post_init__(self):
+        """Cast the host_url to YarlURL if it is not already."""
+        if not isinstance(self.host_url, URL):
+            self.host_url = URL(self.host_url)
+        assert self.token is not None, "Token must be provided"
+
+
+class BearerAuthentication(Authentication):
+    """Bearer authentication class that adds the Bearer token to the request."""
+
+    def __init__(self, tokens: list[BearerTokenForHost]):
+        """Create a new BearerAuthentication instance.
+
+        :param tokens: list of (host url, token) pairs. The token will be added to the request if the host url matches
+            (including the scheme).
+        """
+        self.tokens = tokens
+
+    def apply(self, request: ClientRequest) -> None:
+        """Apply the authentication to the request.
+
+        :param request: aiohttp request where the authentication should be applied
+        """
+        for token in self.tokens:
+            if (
+                request.url.host == token.host_url.host
+                and request.url.scheme == token.host_url.scheme
+            ):
+                request.headers[hdrs.AUTHORIZATION] = f"Bearer {token.token}"
+                break
