@@ -13,12 +13,12 @@ from typing import Optional
 import typer
 from typing_extensions import Annotated
 
-from invenio_nrp import Config
 from invenio_nrp.cli.base import OutputFormat, run_async
 from invenio_nrp.cli.records.get import read_record
 from invenio_nrp.cli.records.record_file_name import create_output_file_name
 from invenio_nrp.client.async_client.files.downloader import Downloader
 from invenio_nrp.client.async_client.files.sink.file import FileSink
+from invenio_nrp.config import Config
 
 
 @run_async
@@ -47,7 +47,7 @@ async def download_files(
 
     async with Downloader() as downloader:
         for record_id in ids:
-            record, record_id, repository_config = await read_record(
+            record, record_id, repository_config, record_client = await read_record(
                 record_id, repository, config, False, model, published
             )
             files = await record.files().list()

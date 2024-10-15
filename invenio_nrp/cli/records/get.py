@@ -16,14 +16,13 @@ from rich.console import Console
 from typing_extensions import Annotated
 from yarl import URL
 
-from invenio_nrp import Config
 from invenio_nrp.cli.base import OutputFormat, OutputWriter, run_async
 from invenio_nrp.cli.records.record_file_name import create_output_file_name
 from invenio_nrp.cli.records.table_formatters import format_record_table
 from invenio_nrp.client import AsyncClient
 from invenio_nrp.client.async_client.records import Record, RecordClient
 from invenio_nrp.client.doi import resolve_doi
-from invenio_nrp.config import RepositoryConfig
+from invenio_nrp.config import Config, RepositoryConfig
 
 
 @run_async
@@ -85,7 +84,7 @@ async def get_single_record(
     expand: bool,
 ) -> tuple[Record, Path | None, RepositoryConfig]:
     """Get a single record from the repository and print/save it."""
-    record, record_id, repository_config = await read_record(
+    record, record_id, repository_config, record_client = await read_record(
         record_id, repository, config, expand, model, published
     )
 
@@ -109,7 +108,7 @@ async def read_record(
     expand: bool,
     model: str | None,
     published: bool,
-) -> tuple[Record, str, RepositoryConfig]:
+) -> tuple[Record, str, RepositoryConfig, RecordClient]:
     """Read a record from the repository, returning the record, its id and the repository config."""
     record_id, repository_config = get_repository_from_record_id(
         record_id, config, repository
@@ -121,7 +120,7 @@ async def read_record(
         client.published_records(model) if published else client.user_records(model)
     )
     record = await records_api.read_record(record_id=record_id, expand=expand)
-    return record, record_id, repository_config
+    return record, record_id, repository_config, records_api
 
 
 def get_repository_from_record_id(

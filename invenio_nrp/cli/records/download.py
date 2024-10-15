@@ -14,11 +14,11 @@ import typer
 from rich.console import Console
 from typing_extensions import Annotated
 
-from invenio_nrp import Config
 from invenio_nrp.cli.base import OutputFormat, run_async
 from invenio_nrp.cli.records.get import get_single_record
 from invenio_nrp.client.async_client.files.downloader import Downloader
 from invenio_nrp.client.async_client.files.sink.file import FileSink
+from invenio_nrp.config import Config
 
 
 @run_async

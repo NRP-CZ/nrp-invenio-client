@@ -20,7 +20,8 @@ from rich.console import Console
 from rich.table import Table
 from typing_extensions import Annotated
 
-from invenio_nrp import Config, SyncClient
+from invenio_nrp.client.sync_client import SyncClient
+from invenio_nrp.config import Config
 from invenio_nrp.config.repository import RepositoryConfig
 
 from .base import OutputFormat, OutputWriter
@@ -185,7 +186,9 @@ def dump_repo_configuration(repo: RepositoryConfig) -> dict:
     }
 
 
-def output_tables(*, config: Config, verbose: bool, **kwargs: dict) -> Generator[Table]:
+def output_tables(
+    *, config: Config, verbose: bool, **kwargs: dict
+) -> Generator[Table, None, None]:
     """Output the information about the repositories formatted as a table."""
     if not verbose:
         table = Table(title="Repositories", box=box.SIMPLE, title_justify="left")
@@ -208,7 +211,7 @@ def output_repository_info_table(
     config: Config,
     repo: RepositoryConfig,
     **kwargs: Any,  # noqa: ANN401
-) -> Generator[Table]:
+) -> Generator[Table, None, None]:
     """Output the information about a repository formatted as a table."""
     table = Table(
         title=f"Repository '{repo.alias}'",

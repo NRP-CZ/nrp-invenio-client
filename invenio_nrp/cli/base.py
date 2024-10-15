@@ -19,7 +19,7 @@ import yaml
 from rich.console import Console
 from rich.table import Table
 
-from invenio_nrp import Config
+from invenio_nrp.config import Config
 
 if TYPE_CHECKING:
     from io import TextIOWrapper
@@ -119,7 +119,7 @@ class OutputWriter:
         output_file: Path | None,
         output_format: OutputFormat | None,
         console: Console,
-        table_maker: Callable[..., Table | Generator[Table] | list[Table]],
+        table_maker: Callable[..., Table | Generator[Table, None, None] | list[Table]],
     ) -> None:
         """Initialize the output writer."""
         self.output_file = output_file

@@ -10,9 +10,9 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Callable, Optional
+from typing import Annotated, Callable, Optional
 
-from typer import Typer
+import typer
 
 from invenio_nrp.cli.records import (
     create_record,
@@ -31,20 +31,24 @@ from .repositories import (
     remove_repository,
     select_repository,
 )
+from .repository_requests import create_request, list_requests
 from .variables import get_variable, list_variables, remove_variable, set_variable
 
 commands = [
     # verb centric
     ("add", "repository", add_repository),
     ("create", "record", create_record),
+    ("create", "request", create_request),
     ("describe", "repository", describe_repository),
     ("download", "record", download_record),
     ("download", "files", download_files),
+    ("download", "file", download_files),
     ("get", "record", get_record),
     ("get", "variable", get_variable),
     ("list", "files", list_files),
     ("list", "records", search_records),
     ("list", "repositories", list_repositories),
+    ("list", "requests", list_requests),
     ("list", "variables", list_variables),
     ("remove", "repository", remove_repository),
     ("remove", "variable", remove_variable),
@@ -67,6 +71,8 @@ commands = [
     ("records", "search", search_records),
     ("records", "scan", scan_records),
     ("records", "update", update_record),
+    ("requests", "create", create_request),
+    ("requests", "list", list_requests),
     ("repositories", "add", add_repository),
     ("repositories", "describe", describe_repository),
     ("repositories", "remove", remove_repository),
@@ -89,11 +95,12 @@ class CommandTreeNode:
     command: Optional[Callable[..., None]] = None
     """Command to execute at this node, if the children are empty."""
 
-    def register_commands(self, parent_typer_group: Typer) -> None:
+    def register_commands(self, parent_typer_group: typer.Typer) -> None:
         """Register the commands to parent's typer group."""
         for child_name, child in self.children.items():
             if child.children:
-                grp = Typer()
+                children_names = ", ".join(child.children.keys())
+                grp = typer.Typer(help=f"{children_names}")
                 child.register_commands(grp)
                 parent_typer_group.add_typer(grp, name=child_name)
             else:
@@ -121,9 +128,9 @@ class CommandTreeNode:
             )
 
 
-def generate_typer_command() -> Typer:
+def generate_typer_command() -> typer.Typer:
     """Register all commands into the typer app."""
-    app = Typer()
+    app = typer.Typer(no_args_is_help=True)
 
     tree_root = CommandTreeNode()
     for cmd in commands:
@@ -131,6 +138,24 @@ def generate_typer_command() -> Typer:
         tree_root.add_command(cmd)  # type: ignore
 
     tree_root.register_commands(app)
+
+    @app.callback()
+    def main(
+        show_communication: Annotated[
+            Optional[bool],
+            typer.Option(
+                "--show-communication", is_flag=True, help="Show network communication"
+            ),
+        ] = False,
+    ) -> None:
+        """Run the client."""
+        import logging
+
+        logging.basicConfig(level=logging.ERROR)
+
+        if show_communication:
+            communication_log = logging.getLogger("invenio_nrp.communication")
+            communication_log.setLevel(logging.INFO)
 
     return app
 

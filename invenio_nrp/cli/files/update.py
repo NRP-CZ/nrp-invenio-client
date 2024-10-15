@@ -12,10 +12,10 @@ from typing import Optional
 import typer
 from typing_extensions import Annotated
 
-from invenio_nrp import Config
 from invenio_nrp.cli.base import run_async
 from invenio_nrp.cli.records.get import read_record
 from invenio_nrp.cli.records.metadata import read_metadata
+from invenio_nrp.config import Config
 
 
 @run_async
@@ -46,7 +46,7 @@ async def update_file_metadata(
         raise ValueError("Only one record ID can be provided")
 
     record_id = ids[0]
-    record, record_id, repository_config = await read_record(
+    record, record_id, repository_config, record_client = await read_record(
         record_id, repository, config, False, model, published
     )
 

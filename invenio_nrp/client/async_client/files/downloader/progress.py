@@ -7,11 +7,14 @@
 #
 """Progress keeper for the downloader."""
 
-from invenio_nrp.client.async_client.files.downloader.progress_bar import log
+from __future__ import annotations
 
-from .chunk import DownloadChunk
-from .downloader import Downloader
-from .job import DownloadJob
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .chunk import DownloadChunk
+    from .downloader import Downloader
+    from .job import DownloadJob
 
 
 class ProgressKeeper:
@@ -25,7 +28,7 @@ class ProgressKeeper:
         chunk: DownloadChunk | None = None,
     ) -> None:
         """Log an error message."""
-        log.error(message)
+        pass
 
     def download_file_started(self, job: DownloadJob) -> None:
         """Note that a file download has started."""
@@ -65,4 +68,4 @@ class ProgressKeeper:
 
     def warning(self, downloader: Downloader, job: DownloadJob, message: str) -> None:
         """Log a warning message."""
-        log.warning(message)
+        pass

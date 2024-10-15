@@ -7,19 +7,23 @@
 #
 """Downloader chunk."""
 
+from __future__ import annotations
+
 import dataclasses
 import traceback
+from typing import TYPE_CHECKING
 
-from aiohttp import ClientResponse
+if TYPE_CHECKING:
+    from aiohttp import ClientResponse
 
-from .downloader import Downloader, DownloadJob
+    from .downloader import Downloader, DownloadJob
 
 
 @dataclasses.dataclass
 class DownloadChunk:
     """A single chunk of a download job."""
 
-    downloader: "Downloader"
+    downloader: Downloader
     """The downloader that is downloading this chunk"""
 
     job: DownloadJob

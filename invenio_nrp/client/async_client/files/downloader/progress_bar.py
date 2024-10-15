@@ -7,17 +7,22 @@
 #
 """Console progress bar for the downloader."""
 
+from __future__ import annotations
+
 import logging
 import traceback
 from functools import partial
+from typing import TYPE_CHECKING
 
 import humanize
 import progressbar
 
-from .chunk import DownloadChunk
-from .downloader import Downloader
-from .job import DownloadJob
 from .progress import ProgressKeeper
+
+if TYPE_CHECKING:
+    from .chunk import DownloadChunk
+    from .downloader import Downloader
+    from .job import DownloadJob
 
 log = logging.getLogger(__name__)
 
@@ -93,14 +98,14 @@ class ProgressBar(ProgressKeeper):
     def on_error(
         self,
         message: str,
-        downloader: "Downloader|None" = None,
+        downloader: Downloader | None = None,
         job: DownloadJob | None = None,
         chunk: DownloadChunk | None = None,
     ) -> None:
         """Log an error message."""
         log.error(message)
 
-    def downloader_started(self, downloader: "Downloader") -> None:
+    def downloader_started(self, downloader: Downloader) -> None:
         """Note that the downloader has started."""
         widgets = [
             "Downloaded ",
@@ -121,11 +126,11 @@ class ProgressBar(ProgressKeeper):
             widgets=widgets, max_value=progressbar.UnknownLength
         )
 
-    def downloader_before_finish(self, downloader: "Downloader") -> None:
+    def downloader_before_finish(self, downloader: Downloader) -> None:
         """Note that the downloader is about to finish."""
         pass
 
-    def downloader_finished(self, downloader: "Downloader") -> None:
+    def downloader_finished(self, downloader: Downloader) -> None:
         """Note that the downloader has finished."""
         self._pb.finish()
 

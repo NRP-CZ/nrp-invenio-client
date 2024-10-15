@@ -5,4 +5,9 @@
 # modify it under the terms of the MIT License; see LICENSE file for more
 # details.
 #
-"""API and commandline client for invenio repositories."""
+"""CLI for requests."""
+
+from .create import create_request
+from .list import list_requests
+
+__all__ = ("list_requests", "create_request")

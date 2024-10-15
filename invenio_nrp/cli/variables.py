@@ -15,7 +15,7 @@ from rich import box
 from rich.console import Console
 from rich.table import Table
 
-from invenio_nrp import Config
+from invenio_nrp.config import Config
 
 from .base import OutputFormat, OutputWriter
 

@@ -14,7 +14,6 @@ import typer
 from rich.console import Console
 from typing_extensions import Annotated
 
-from invenio_nrp import Config
 from invenio_nrp.cli.base import OutputFormat, OutputWriter, run_async, set_variable
 from invenio_nrp.cli.records.table_formatters import (
     format_record_table,
@@ -22,6 +21,7 @@ from invenio_nrp.cli.records.table_formatters import (
 )
 from invenio_nrp.client import AsyncClient
 from invenio_nrp.client.async_client.records import RecordClient, RecordList
+from invenio_nrp.config import Config
 
 
 @run_async

@@ -15,7 +15,7 @@ from typing import Any, Generator, Optional, Type, overload
 
 import requests
 from pydantic import BaseModel, ValidationError
-from requests.adapters import HTTPAdapter
+from requests import adapters
 from urllib3.util import Retry
 from yarl import URL
 
@@ -98,9 +98,9 @@ class Connection:
                 backoff_factor=self._repository_config.retry_after_seconds,
                 status_forcelist=[429, 500, 502, 503, 504],
             )
-            adapter = HTTPAdapter(max_retries=retry)
+            adapter = adapters.HTTPAdapter(max_retries=retry)
         else:
-            adapter = HTTPAdapter()
+            adapter = adapters.HTTPAdapter()
 
         session = requests.Session()
         session.auth = self.auth

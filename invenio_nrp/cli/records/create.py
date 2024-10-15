@@ -14,12 +14,11 @@ import typer
 from rich.console import Console
 from typing_extensions import Annotated
 
-from invenio_nrp import Config
 from invenio_nrp.cli.base import OutputFormat, OutputWriter, run_async, set_variable
-from invenio_nrp.cli.files.upload import upload_files_to_record
 from invenio_nrp.cli.records.metadata import read_metadata
 from invenio_nrp.cli.records.table_formatters import format_record_table
 from invenio_nrp.client import AsyncClient
+from invenio_nrp.config import Config
 
 if TYPE_CHECKING:
     from invenio_nrp.client.async_client.records import RecordClient
@@ -28,8 +27,10 @@ if TYPE_CHECKING:
 @run_async
 async def create_record(
     metadata: Annotated[str, typer.Argument(help="Metadata")],
-    files: Annotated[list[str], typer.Argument(help="List of files to upload")],
-    variable: Annotated[Optional[str], typer.Argument(help="Variable name")],
+    files: Annotated[
+        Optional[list[str]], typer.Argument(help="List of files to upload")
+    ] = None,
+    variable: Annotated[Optional[str], typer.Argument(help="Variable name")] = None,
     repository: Annotated[Optional[str], typer.Option(help="Repository alias")] = None,
     model: Annotated[Optional[str], typer.Option(help="Model name")] = None,
     community: Annotated[Optional[str], typer.Option(help="Community name")] = None,
@@ -47,6 +48,8 @@ async def create_record(
 ) -> None:
     """Create a new record in the repository and optionally upload files to it."""
     console = Console()
+    if not files:
+        files = []
 
     metadata, files, variable = reorder_arguments(metadata, files, variable)
     if len(files) % 2 != 0:
@@ -68,7 +71,9 @@ async def create_record(
     if variable:
         set_variable(config, variable, str(record.links.self_))
 
-    # upload files
+    # upload files - imported here to avoid circular imports
+    from invenio_nrp.cli.files.upload import upload_files_to_record
+
     await upload_files_to_record(record, *zip(files[::2], files[1::2]))
 
     with OutputWriter(output, output_format, console, format_record_table) as printer:

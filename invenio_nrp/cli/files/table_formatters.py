@@ -16,7 +16,7 @@ from invenio_nrp.client.async_client.files import FilesList
 from invenio_nrp.client.async_client.records import Record
 
 
-def format_files_table(record: Record, files: FilesList) -> Generator[Table]:
+def format_files_table(record: Record, data: FilesList) -> Generator[Table, None, None]:
     """Format the files table."""
     table = Table(
         "Key",
@@ -29,7 +29,7 @@ def format_files_table(record: Record, files: FilesList) -> Generator[Table]:
         box=box.SIMPLE,
         title_justify="left",
     )
-    for file in files.entries:
+    for file in data.entries:
         table.add_row(
             file.key,
             file.status,

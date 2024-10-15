@@ -8,6 +8,7 @@
 """Asynchronous connection for the NRP client using the aiohttp and aiohttp-retry library."""
 
 import contextlib
+import json as _json
 import logging
 from io import IOBase
 from typing import Any, AsyncIterator, Optional, Type, overload
@@ -25,6 +26,7 @@ from .response import RepositoryResponse
 from .retry import ServerAssistedRetry
 
 log = logging.getLogger("invenio_nrp.async_client.connection")
+communication_log = logging.getLogger("invenio_nrp.communication")
 
 type HttpClient = RetryClient
 
@@ -107,6 +109,8 @@ class Connection:
         :raises RepositoryServerError: if the request fails due to server error (HTTP 5xx)
         :raises RepositoryCommunicationError: if the request fails due to network error
         """
+        if communication_log.isEnabledFor(logging.INFO):
+            communication_log.info("GET %s", url)
         async with (
             self._client(idempotent=idempotent) as client,
             _cast_error(),
@@ -143,6 +147,10 @@ class Connection:
         assert (
             json is not None or data is not None
         ), "Either json or data must be provided"
+        if communication_log.isEnabledFor(logging.INFO):
+            communication_log.info("POST %s", url)
+            communication_log.info("%s", _json.dumps(json))
+
         async with (
             self._client(idempotent=idempotent) as client,
             _cast_error(),
@@ -179,6 +187,9 @@ class Connection:
         assert (
             json is not None or data is not None
         ), "Either json or data must be provided"
+        if communication_log.isEnabledFor(logging.INFO):
+            communication_log.info("PUT %s", url)
+            communication_log.info("%s", _json.dumps(json))
         async with (
             self._client(idempotent=True) as client,
             _cast_error(),
@@ -204,6 +215,9 @@ class Connection:
         :raises RepositoryServerError: if the request fails due to server error (HTTP 5xx)
         :raises RepositoryCommunicationError: if the request fails due to network
         """
+        if communication_log.isEnabledFor(logging.INFO):
+            communication_log.info("PUT %s", url)
+            communication_log.info("(stream)")
         async with (
             self._client(idempotent=True) as client,
             _cast_error(),
@@ -230,6 +244,8 @@ class Connection:
         :raises RepositoryServerError: if the request fails due to server error (HTTP 5xx)
         :raises RepositoryCommunicationError: if the request fails due to network
         """
+        if communication_log.isEnabledFor(logging.INFO):
+            communication_log.info("DELETE %s", url)
         async with (
             self._client(idempotent=idempotent) as client,
             _cast_error(),
@@ -274,6 +290,8 @@ class Connection:
         json_payload = await response.read()
         assert result_class is not None
         try:
+            if communication_log.isEnabledFor(logging.INFO):
+                communication_log.info("%s", _json.dumps(_json.loads(json_payload)))
             return result_class.model_validate_json(
                 json_payload,
                 strict=True,

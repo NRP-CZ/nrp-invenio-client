@@ -15,12 +15,12 @@ from deepmerge import always_merger
 from rich.console import Console
 from typing_extensions import Annotated, Self
 
-from invenio_nrp import Config
 from invenio_nrp.cli.base import OutputFormat, OutputWriter, run_async
 from invenio_nrp.cli.records.get import get_repository_from_record_id
 from invenio_nrp.cli.records.metadata import read_metadata
 from invenio_nrp.cli.records.table_formatters import format_record_table
 from invenio_nrp.client import AsyncClient
+from invenio_nrp.config import Config
 
 if TYPE_CHECKING:
     from invenio_nrp.client.async_client.records import RecordClient

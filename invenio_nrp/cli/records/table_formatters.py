@@ -7,16 +7,20 @@
 #
 """Table formatters for records."""
 
-from typing import Generator
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Generator
 
 from rich import box
 from rich.table import Table
 
 from invenio_nrp.cli.base import write_table_row
-from invenio_nrp.client.async_client.records import Record, RecordList
+
+if TYPE_CHECKING:
+    from invenio_nrp.client.async_client.records import Record, RecordList
 
 
-def format_search_table(record_list: RecordList) -> Generator[Table]:
+def format_search_table(record_list: RecordList) -> Generator[Table, None, None]:
     """Format a search result as a table."""
     table = Table(
         title="Records", box=box.SIMPLE, title_justify="left", show_header=False
@@ -31,10 +35,13 @@ def format_search_table(record_list: RecordList) -> Generator[Table]:
         yield from format_record_table(record)
 
 
-def format_record_table(record: Record) -> Generator[Table]:
+def format_record_table(
+    data: Record,
+    **kwargs: Any,  # noqa: ANN401
+) -> Generator[Table, None, None]:
     """Format a record as a table."""
-    table = Table(f"Record {record.id}", box=box.SIMPLE, title_justify="left")
-    record_dump = record.model_dump()  # type: ignore
+    table = Table(f"Record {data.id}", box=box.SIMPLE, title_justify="left")
+    record_dump = data.model_dump()  # type: ignore
     for k, v in record_dump.items():
         if k != "metadata":
             write_table_row(table, k, v)
