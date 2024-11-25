@@ -20,18 +20,18 @@ if TYPE_CHECKING:
     from invenio_nrp.client.async_client.records import Record, RecordList
 
 
-def format_search_table(record_list: RecordList) -> Generator[Table, None, None]:
+def format_search_table(data: RecordList) -> Generator[Table, None, None]:
     """Format a search result as a table."""
     table = Table(
         title="Records", box=box.SIMPLE, title_justify="left", show_header=False
     )
-    table.add_row("Self", str(record_list.links.self_))
-    table.add_row("Next", str(record_list.links.next))
-    table.add_row("Previous", str(record_list.links.prev))
-    table.add_row("Total", str(record_list.total))
+    table.add_row("Self", str(data.links.self_))
+    table.add_row("Next", str(data.links.next))
+    table.add_row("Previous", str(data.links.prev))
+    table.add_row("Total", str(data.total))
     yield table
 
-    for record in record_list:
+    for record in data:
         yield from format_record_table(record)
 
 

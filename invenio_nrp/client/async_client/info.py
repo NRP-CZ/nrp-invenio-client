@@ -64,6 +64,8 @@ class AsyncInfoClient:
 
         except (RepositoryClientError, RepositoryCommunicationError):
             # not a NRP based repository, suppose that it is plain invenio rdm
+            import traceback
+            traceback.print_exc()
             self._repository_config.info = _make_rdm_info(self._repository_config.url)
 
         return cast(RepositoryInfo, self._repository_config.info)

@@ -17,8 +17,8 @@ def _make_rdm_info(url: URL) -> RepositoryInfo:
     return RepositoryInfo(
         name="RDM repository",
         description="",
-        version="unknown",
-        invenio_version="unknown",
+        version="rdm",
+        invenio_version="rdm",
         transfers=[
             "local-transfer",
         ],

@@ -59,7 +59,7 @@ def list_variables(
     output_format: Annotated[
         Optional[OutputFormat],
         typer.Option(help="The format of the output"),
-    ] = OutputFormat.TABLE,
+    ] = "table",
 ) -> None:
     """List all variables."""
     console = Console()
@@ -79,7 +79,7 @@ def get_variable(
     output_format: Annotated[
         Optional[OutputFormat],
         typer.Option(help="The format of the output"),
-    ] = OutputFormat.TABLE,
+    ] = "table",
 ) -> None:
     """Get all variables."""
     console = Console()
@@ -87,18 +87,18 @@ def get_variable(
     variables = config.load_variables()
     value = variables.get(variable)
 
-    def variable_table(value: list[str]) -> str:
-        return "\n".join(value)
+    def variable_table(data: list[str]) -> str:
+        return "\n".join(data)
 
     with OutputWriter(output, output_format, console, variable_table) as printer:
         printer.output(value)
 
 
-def variables_table(variables: dict[str, list[str]]) -> Table:
+def variables_table(data: dict[str, list[str]]) -> Table:
     """Render a table of variables."""
     table = Table(title="Variables", box=box.SIMPLE, title_justify="left")
     table.add_column("Name", style="cyan")
     table.add_column("Values")
-    for name, values in variables.items():
+    for name, values in data.items():
         table.add_row(name, "\n".join(values))
     return table

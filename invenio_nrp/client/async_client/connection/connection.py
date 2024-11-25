@@ -314,6 +314,8 @@ def remove_quotes(etag: str) -> Optional[str]:
     """
     if etag is None:
         return None
+    if etag.startswith('W/'):
+        etag = etag[2:]
     return etag.strip('"')
 
 

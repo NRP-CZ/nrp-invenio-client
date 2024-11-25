@@ -61,6 +61,17 @@ class ModelInfoLinks(BaseModel):
         extra = "allow"
 
 
+class ModelInfoAccept(BaseModel):
+    accept: str
+    """The content-type accepted by the model"""
+
+    name: str | None = None
+    """The name of the content-type"""
+
+    description: str | None = None
+    """The description of the content-type"""
+
+
 class ModelInfo(BaseModel):
     """Information about metadata model within invenio server."""
 
@@ -76,11 +87,11 @@ class ModelInfo(BaseModel):
     features: list[str]
     """List of features supported by the model"""
 
-    schemas: dict[str, str]
-    """List of schema identifiers by content-type supported by the model"""
-
     links: ModelInfoLinks
     """Links to the model"""
+
+    accept: list[ModelInfoAccept] = Field(default_factory=list)
+    """List of supported content-types for API serialization"""
 
     class Config:  # noqa
         extra = "allow"

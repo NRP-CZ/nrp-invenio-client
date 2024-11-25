@@ -85,7 +85,7 @@ def add_repository(
             "Please log in inside the browser.\nWhen the browser tells you "
             "that the token has been created, \ncopy the token and paste it here.",
         )
-        console.print("Press enter to continue")
+        console.print("Press enter to open the page ...")
         typer.getchar()
 
         try:
@@ -252,7 +252,6 @@ def output_repository_info_table(
             table.add_row("Description", model_info.description)
             table.add_row("Version", model_info.version)
             table.add_row("Features", ", ".join(model_info.features))
-            table.add_row("Schemas", str(model_info.schemas))
             table.add_row("API", str(model_info.links.api))
             table.add_row("HTML", str(model_info.links.html))
             table.add_row("Schemas", str(model_info.links.schemas))
