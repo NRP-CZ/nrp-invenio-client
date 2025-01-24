@@ -12,7 +12,7 @@ from yarl import URL
 from invenio_nrp.types import RepositoryInfo, RepositoryInfoLinks
 
 
-def _make_rdm_info(url: URL) -> RepositoryInfo:
+def make_rdm_info(url: URL) -> RepositoryInfo:
     """If repository does not provide the info endpoint, we assume it is a plain invenio rdm."""
     return RepositoryInfo(
         name="RDM repository",
@@ -23,9 +23,11 @@ def _make_rdm_info(url: URL) -> RepositoryInfo:
             "local-transfer",
         ],
         links=RepositoryInfoLinks(
+            self_=url,
             records=url / "api" / "records/",
             user_records=url / "api" / "user" / "records/",
             requests=url / "api" / "requests/",
+            models=None,
         ),
         models={},
     )

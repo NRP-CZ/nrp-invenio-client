@@ -9,9 +9,6 @@ import pytest
 import rich
 
 from invenio_nrp.client import AsyncClient
-from invenio_nrp.client.async_client.files import File
-from invenio_nrp.client.async_client.records import Record
-from invenio_nrp.client.async_client.request_types import RequestType
 from invenio_nrp.client.async_client.requests import Request
 from invenio_nrp.client.errors import RepositoryCommunicationError
 
@@ -78,6 +75,7 @@ async def test_list_requests(local_client: AsyncClient, draft_record):
     requests = await all_requests.submitted()
     assert requests.total == 1 + initially_submitted_requests_count
     first_request = requests.hits[0]
+    assert isinstance(first_request, Request)
     assert first_request.status == "submitted"
     assert first_request.id == submitted_request.id
 

@@ -9,21 +9,25 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 from typing import Optional, Self
 
-from pydantic import BaseModel, Field
+from attrs import define, field
+from cattrs.gen import make_dict_structure_fn, make_dict_unstructure_fn, override
 from yarl import URL
 
+from ..types.converter import converter
 from .repository import RepositoryConfig
 from .variables import Variables
 
 
-class Config(BaseModel):
+@define(kw_only=True)
+class Config:
     """The configuration of the NRP client as stored in the configuration file."""
 
-    repositories: list[RepositoryConfig] = Field(default_factory=list)
+    repositories: list[RepositoryConfig] = field(factory=list)
     """Locally known repositories."""
 
     default_alias: Optional[str] = None
@@ -51,8 +55,8 @@ class Config(BaseModel):
                 config_file_path = Path.home() / ".nrp" / "invenio-config.json"
 
         if config_file_path.exists():
-            ret = cls.model_validate_json(
-                config_file_path.read_text(encoding="utf-8"), strict=True
+            ret = converter.structure(
+                json.loads(config_file_path.read_text(encoding="utf-8")), cls
             )
         else:
             ret = cls()
@@ -67,10 +71,7 @@ class Config(BaseModel):
             path = self._config_file_path
         assert path is not None
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(
-            self.model_dump_json(indent=4, by_alias=True),
-            encoding="utf-8",
-        )
+        path.write_text(json.dumps(converter.unstructure(self), indent=4))
 
     #
     # Repository management
@@ -109,12 +110,17 @@ class Config(BaseModel):
         self.default_alias = alias
 
     def get_repository_from_url(self, record_url: str | URL) -> RepositoryConfig:
-        """Get the repository configuration for a given record URL."""
+        """Get the repository configuration for a given record URL.
+
+        If there is no repository configuration for the given URL, a dummy
+        repository configuration is returned.
+        """
         record_url = URL(record_url)
         repository_root_url = record_url.with_path("/")
         for repository in self.repositories:
             if repository.url == repository_root_url:
                 return repository
+        # return a dummy repository configuration
         return RepositoryConfig(
             alias=str(repository_root_url),
             url=repository_root_url,
@@ -126,3 +132,14 @@ class Config(BaseModel):
         if self.per_directory_variables:
             return Variables.from_file(Path.cwd() / ".nrp" / "variables.json")
         return Variables.from_file()
+
+
+config_unst_hook = make_dict_unstructure_fn(
+    Config, converter, _config_file_path=override(omit=True)
+)
+config_st_hook = make_dict_structure_fn(
+    Config, converter, _config_file_path=override(omit=True)
+)
+
+converter.register_structure_hook(Config, config_st_hook)
+converter.register_unstructure_hook(Config, config_unst_hook)

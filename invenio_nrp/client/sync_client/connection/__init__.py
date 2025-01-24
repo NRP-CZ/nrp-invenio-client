@@ -7,6 +7,6 @@
 #
 """Synchronous client for the NRP Invenio repository - low level connection."""
 
-from .connection import Connection
+from .connection import Connection, ConnectionMixin, connection_unstructure_hook
 
-__all__ = ("Connection",)
+__all__ = ("Connection", "connection_unstructure_hook", "ConnectionMixin")

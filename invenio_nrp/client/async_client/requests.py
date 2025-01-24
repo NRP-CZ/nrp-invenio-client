@@ -9,44 +9,48 @@
 
 from datetime import datetime
 from enum import StrEnum, auto
-from typing import Annotated, Any, Optional, Self
+from typing import Any, Optional, Self
 
-from pydantic import AfterValidator, BeforeValidator, Field, fields, model_validator
+from attrs import define
+from cattrs.dispatch import StructureHook
 from yarl import URL
 
 from ...types.base import Model
-from ...types.yarl_url import YarlURL
+from ...types.converter import Rename, WrapStructure, extend_serialization
 from .connection import Connection
 from .rest import BaseRecord, RESTList, RESTObjectLinks
 
 
-def single_value_expected(value: list | tuple) -> None:
+def single_value_expected(value: list[Any] | tuple[Any, ...] | dict[Any, Any]) -> None:
     """Check that the value is a single value."""
     assert len(value) == 1, "Expected exactly one value"
 
 
+@define(kw_only=True)
 class RequestActionLinks(Model):
     """Possible actions on a request."""
 
-    submit: Optional[YarlURL] = None
-    cancel: Optional[YarlURL] = None
-    accept: Optional[YarlURL] = None
-    decline: Optional[YarlURL] = None
+    submit: Optional[URL] = None
+    cancel: Optional[URL] = None
+    accept: Optional[URL] = None
+    decline: Optional[URL] = None
 
 
+@extend_serialization(Rename("self", "self_"), allow_extra_data=True)
+@define(kw_only=True)
 class RequestLinks(RESTObjectLinks):
     """Links on a request."""
 
     actions: RequestActionLinks
     """Actions that can be performed on the request at the moment by the current user."""
 
-    self_: YarlURL = fields.Field(alias="self")
+    self_: URL
     """Link to the request itself"""
 
-    comments: YarlURL
+    comments: URL
     """Link to the comments on the request"""
 
-    timeline: YarlURL
+    timeline: URL
     """Link to the timeline (events) of the request"""
 
 
@@ -61,13 +65,7 @@ class RequestStatus(StrEnum):
     EXPIRED = auto()
 
 
-JSONRequestStatus = Annotated[
-    RequestStatus,
-    BeforeValidator(lambda x: RequestStatus(x) if isinstance(x, str) else x),
-]
-"""Status of the request with pydantic validation."""
-
-
+@define(kw_only=True)
 class RequestPayloadRecord(Model):
     """A publish/edit/new version request can have a simplified record serialization inside its payload.
 
@@ -78,6 +76,25 @@ class RequestPayloadRecord(Model):
     """Links to the record (self and self_html)"""
 
 
+def restore_hierarchy(data: dict[str, Any], type_: type, previous: StructureHook) -> Any:
+    """Restore the hierarchy of the request payload."""
+
+    def _parse_colon_hierarchy(obj: dict[str, Any], key: str, value: Any) -> None:
+        parts = key.split(":")
+        for part in parts[:-1]:
+            obj = obj.setdefault(part, {})
+        obj[parts[-1]] = value
+
+    if not data:
+        return previous(data, type_)
+    
+    obj: dict[str, Any] = {}
+    for k, v in data.items():
+        _parse_colon_hierarchy(obj, k, v)
+    return previous(obj, type_)
+
+@extend_serialization(WrapStructure(restore_hierarchy), allow_extra_data=False)
+@define(kw_only=True)
 class RequestPayload(Model):
     """Payload of a request.
 
@@ -92,24 +109,8 @@ class RequestPayload(Model):
     draft_record: RequestPayloadRecord | None = None
     """An edit request can have a simplified record serialization inside its payload."""
 
-    @model_validator(mode="before")
-    @classmethod
-    def __pydantic_restore_hierarchy(cls, data: dict[str, Any]) -> Any:  # type: ignore # noqa: ANN401
-        if not data:
-            return {}
-        obj: dict[str, Any] = {}
-        for k, v in data.items():
-            cls._parse_colon_hierarchy(obj, k, v)
-        return obj
 
-    @classmethod
-    def _parse_colon_hierarchy(self, obj: dict[str, Any], key: str, value: Any) -> None:  # type: ignore # noqa: ANN401
-        parts = key.split(":")
-        for part in parts[:-1]:
-            obj = obj.setdefault(part, {})
-        obj[parts[-1]] = value
-
-
+@define(kw_only=True)
 class Request(BaseRecord):
     """Interface for a request in the NRP repository."""
 
@@ -119,10 +120,10 @@ class Request(BaseRecord):
     type: str
     """Request type identifier."""
 
-    title: Optional[str]
+    title: Optional[str] = None
     """Title of the request, might be None"""
 
-    status: JSONRequestStatus
+    status: RequestStatus
     """Status of the request"""
 
     is_closed: bool
@@ -131,27 +132,32 @@ class Request(BaseRecord):
     is_open: bool
     """Is the request open?"""
 
-    expires_at: Optional[datetime] = Field(None, strict=False)
+    expires_at: Optional[datetime] = None
     """When the request expires, might be unset"""
 
     is_expired: bool
     """Is the request expired?"""
 
-    # TODO: maybe use special class for this with (type, id) fields and not generic dicts
-    created_by: Annotated[dict[str, str], AfterValidator(single_value_expected)]
+    created_by: dict[str, str]
     """Who created the request. It is a dictionary containing a 
     reference to the creator (NOT the links at the moment)."""
 
-    receiver: Annotated[dict[str, str], AfterValidator(single_value_expected)]
+    receiver: dict[str, str]
     """Who is the receiver of the request. It is a dictionary containing a 
     reference to the receiver (NOT the links at the moment)."""
 
-    topic: Annotated[dict[str, str], AfterValidator(single_value_expected)]
+    topic: dict[str, str]
     """The topic of the request. It is a dictionary containing a
     reference to the topic (NOT the links at the moment)."""
 
     payload: Optional[RequestPayload] = None
     """Payload of the request. It can be of different types, depending on the request type."""
+
+    def __attrs_post_init__(self):
+        """Check that the created_by, receiver and topic are single values."""
+        single_value_expected(self.created_by)
+        single_value_expected(self.receiver)
+        single_value_expected(self.topic)
 
     async def submit(self, payload: dict | None = None) -> Self:
         """Submit the request.
@@ -208,17 +214,16 @@ class Request(BaseRecord):
         )
 
 
+@extend_serialization(allow_extra_data=False)
+@define(kw_only=True)
 class RequestList(RESTList[Request]):
     """A list of requests."""
 
-    sortBy: Optional[str]
+    sortBy: Optional[str] = None
     """By which property should be the list sorted"""
 
-    aggregations: Optional[Any]
+    aggregations: Optional[Any] = None
     """Aggregations of the list"""
-
-    hits: list[Request]
-    """List of requests that matched the search query"""
 
 
 class RequestClient:

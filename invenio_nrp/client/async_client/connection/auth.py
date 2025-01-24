@@ -13,8 +13,6 @@ from typing import Optional
 from aiohttp import BasicAuth, ClientRequest, hdrs
 from yarl import URL
 
-from invenio_nrp.types import YarlURL
-
 
 class Authentication(BasicAuth):
     """A generic authentication class that can be used to provide different types of authentication."""
@@ -47,14 +45,14 @@ class AuthenticatedClientRequest(ClientRequest):
 class BearerTokenForHost:
     """URL and bearer token for the invenio repository."""
 
-    host_url: YarlURL
+    host_url: URL
     """URL of the repository."""
 
     token: str
     """Bearer token for the repository."""
 
     def __post_init__(self):
-        """Cast the host_url to YarlURL if it is not already."""
+        """Cast the host_url to URL if it is not already."""
         if not isinstance(self.host_url, URL):
             self.host_url = URL(self.host_url)
         assert self.token is not None, "Token must be provided"

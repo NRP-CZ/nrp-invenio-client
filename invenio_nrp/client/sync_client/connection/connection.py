@@ -14,7 +14,8 @@ from io import IOBase
 from typing import Any, Generator, Optional, Type, overload
 
 import requests
-from pydantic import BaseModel, ValidationError
+from attrs import define, field
+from cattrs.dispatch import UnstructureHook
 from requests import adapters
 from urllib3.util import Retry
 from yarl import URL
@@ -29,7 +30,10 @@ from invenio_nrp.client.errors import (
 from invenio_nrp.client.sync_client.connection.auth import BearerAuthentication
 from invenio_nrp.config import Config, RepositoryConfig
 
+from ...deserialize import deserialize_rest_response
+
 log = logging.getLogger("invenio_nrp.sync_client.connection")
+communication_log = logging.getLogger("invenio_nrp.communication")
 
 
 @contextlib.contextmanager
@@ -277,14 +281,14 @@ class Connection:
     ) -> None: ...
 
     @overload
-    def _get_call_result[T: BaseModel](
+    def _get_call_result[T](
         self,
         response: requests.Response,
         result_class: Type[T],
         result_context: dict | None,
     ) -> T: ...
 
-    def _get_call_result[T: BaseModel](
+    def _get_call_result[T](
         self,
         response: requests.Response,
         result_class: Type[T] | None,
@@ -307,26 +311,53 @@ class Connection:
             return None
         json_payload = response.text
         assert result_class is not None
-        try:
-            return result_class.model_validate_json(
-                json_payload,
-                strict=True,
-                context={
-                    **(result_context or {}),
-                    "etag": remove_quotes(response.headers.get("ETag")),
-                    "connection": self,
-                },
-            )
-        except ValidationError as e:
-            log.error("Error validating %s with %s", json_payload, result_class)
-            log.error(e)
-            raise e
+        etag = remove_quotes(response.headers.get("ETag"))
+        return deserialize_rest_response(
+            self,
+            communication_log,
+            json_payload,
+            result_class,
+            result_context,
+            etag
+        )
 
 
 def remove_quotes(etag: str) -> Optional[str]:
     if etag is None:
         return None
     return etag.strip('"')
+
+
+def connection_unstructure_hook(data: Any, previous: UnstructureHook) -> Any:
+    ret = previous(data)
+    ret.pop('_connection', None)
+    ret.pop('_etag', None)
+    return ret
+
+
+
+
+@define(kw_only=True)
+class ConnectionMixin:
+    """A mixin for classes that are a result of a REST API call."""
+
+    _connection: Connection = field(init=False, default=None)
+    """Connection is automatically injected"""
+
+    _etag: Optional[str] = field(init=False, default=None)
+    """etag is automatically injected if it was returned by the repository"""
+    
+    def _set_connection_params(self, connection: Connection, etag: Optional[str] = None) -> None:
+        """Set the connection and etag."""
+        self._connection = connection
+        self._etag = etag
+
+    def _etag_headers(self) -> dict[str, str]:
+        """Return the headers with the etag if it was returned by the repository."""
+        headers: dict[str, str] = {}
+        if self._etag:
+            headers["If-Match"] = self._etag
+        return headers
 
 
 __all__ = ("Connection",)

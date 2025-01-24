@@ -6,33 +6,23 @@
 # details.
 #
 """Base types for invenio REST responses."""
-
-from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, BeforeValidator
-from typing_extensions import Annotated
 
-
-class Model(BaseModel):
+class Model:
     """Base pydantic model, which allows getting extra fields via normal dot operator."""
 
-    class Config:  # noqa
-        extra = "allow"
+    _extra_data = None
 
     def __getattr__(self, item: str) -> Any:  # noqa: ANN401
         """Get extra fields from the model_extra attribute."""
-        if self.model_extra:
-            if item in self.model_extra:
-                return self.model_extra[item]
-            dash_item = item.replace("_", "-")
-            if dash_item in self.model_extra:
-                return self.model_extra[dash_item]
-        return super().__getattr__(item)
+        if "_extra_data" not in self.__dict__:
+            self._extra_data: dict[str, Any] = {}
 
+        if item in self._extra_data:
+            return self._extra_data[item]
+        dash_item = item.replace("_", "-")
+        if dash_item in self._extra_data:
+            return self._extra_data[dash_item]
 
-JSONDateTime = Annotated[
-    datetime,
-    BeforeValidator(lambda x: datetime.fromisoformat(x) if isinstance(x, str) else x),
-]
-"""Python pydantic-enabled datetime."""
+        raise AttributeError(f"{self.__class__.__name__} has no attribute {item}")

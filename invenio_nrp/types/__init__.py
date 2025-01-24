@@ -7,9 +7,8 @@
 #
 """Base types for REST communication."""
 
-from .base import JSONDateTime, Model
+from .base import Model
 from .info import ModelInfo, ModelInfoLinks, RepositoryInfo, RepositoryInfoLinks
-from .yarl_url import YarlURL
 
 __all__ = (
     "RepositoryInfo",
@@ -17,6 +16,4 @@ __all__ = (
     "ModelInfo",
     "ModelInfoLinks",
     "Model",
-    "YarlURL",
-    "JSONDateTime",
 )

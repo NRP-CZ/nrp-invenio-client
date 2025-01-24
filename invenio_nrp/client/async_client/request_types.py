@@ -9,18 +9,23 @@
 
 from typing import Optional
 
-from ...types import Model, YarlURL
+from attrs import define
+from yarl import URL
+
+from ...types import Model
 from .requests import Request
 from .rest import RESTList, RESTObject
 
 
+@define(kw_only=True)
 class RequestTypeActionLinks(Model):
     """Links on a request type object."""
 
-    create: Optional[YarlURL] = None
+    create: Optional[URL] = None
     """Link to create a new request of this type."""
 
 
+@define(kw_only=True)
 class RequestTypeLinks(Model):
     """Links on a request type."""
 
@@ -28,6 +33,7 @@ class RequestTypeLinks(Model):
     """Actions that can be performed on the request type."""
 
 
+@define(kw_only=True)
 class RequestType(RESTObject):
     """A type of request that the user can apply for.
 
@@ -53,11 +59,9 @@ class RequestType(RESTObject):
         return request
 
 
+@define(kw_only=True)
 class RequestTypeList(RESTList[RequestType]):
     """A list of request types as returned from the API."""
-
-    hits: list[RequestType]
-    """Internal list of request types"""
 
     def __getitem__(self, type_id: str) -> RequestType:
         """Return a request type by its type_id.

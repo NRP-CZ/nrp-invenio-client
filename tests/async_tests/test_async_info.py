@@ -9,7 +9,7 @@ from yarl import URL
 
 
 async def test_async_info(local_client):
-    info = await local_client.info()
+    info = await local_client.info(refresh=True)
     _check_info(info)
 
 
@@ -30,8 +30,8 @@ def _check_info(info):
 async def test_async_info_zenodo(zenodo_client):
     info = await zenodo_client.info()
 
-    assert info.version == "unknown"
-    assert info.links.self_ is None
+    assert info.version == "rdm"
+    assert info.links.self_ == URL("https://www.zenodo.org")
     assert info.links.models is None
     assert info.links.records == URL("https://www.zenodo.org/api/records/")
     assert info.links.user_records == URL("https://www.zenodo.org/api/user/records/")

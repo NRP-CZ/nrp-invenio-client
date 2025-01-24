@@ -11,10 +11,11 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any, Optional, Self
 
-from pydantic import fields
+from attrs import define, field
+from yarl import URL
 
-from invenio_nrp.types import Model, YarlURL
-
+from ....types import Model
+from ....types.converter import Rename, extend_serialization
 from ..connection import Connection
 from ..rest import RESTObject, RESTObjectLinks
 from .source import DataSource
@@ -28,41 +29,55 @@ class TransferType(StrEnum):
     FETCH = "F"
     REMOTE = "R"
 
+@extend_serialization(Rename("self", "self_"), allow_extra_data=True)
+@define(kw_only=True)
+class FileTransfer(Model):
+    """File transfer metadata."""
 
+    type_ : str = field(default=TransferType.LOCAL.value)
+
+
+@define(kw_only=True)
 class MultipartUploadLinks(Model):
     """Links for multipart uploads."""
 
-    url: YarlURL
+    url: URL
     """The url where to upload the part to."""
 
 
+@extend_serialization(Rename("self", "self_"), allow_extra_data=True)
+@define(kw_only=True)
 class FileLinks(RESTObjectLinks):
     """Links for a single invenio file."""
 
-    content: Optional[YarlURL] = None
+    content: Optional[URL] = None
     """Link to the content of the file."""
 
-    commit: Optional[YarlURL] = None
+    commit: Optional[URL] = None
     """Link to commit (finalize) uploading of the file."""
 
     parts: Optional[list[MultipartUploadLinks]] = None
     """For multipart upload, links where to upload the part to."""
 
 
+@extend_serialization(allow_extra_data=True)
+@define(kw_only=True)
 class File(RESTObject):
     """A file object as stored in .../files/<key>."""
 
     key: str
     """Key(filename) of the file."""
 
-    metadata: dict[str, Any]
+    metadata: dict[str, Any] = field(factory=dict)
     """Metadata of the file, as defined in the model."""
 
     links: FileLinks
     """Links to the file content and commit."""
 
-    transfer_type: Optional[TransferType] = None
-    """Type of the transfer that is used for uploading/downloading the file."""
+    transfer: Optional[FileTransfer] = None
+    """File transfer type and metadata."""
+    
+    status: Optional[str] = None
 
     async def save(self) -> Self:
         """Save the file metadata."""
@@ -71,17 +86,18 @@ class File(RESTObject):
             json={
                 "metadata": self.metadata,
             },
-            result_class=File,
+            result_class=type(self),
         )
 
 
+@define(kw_only=True)
 class FilesList(RESTObject):
     """A list of files, as stored in ...<record_id>/files."""
 
     enabled: bool
     """Whether the files are enabled on the record."""
 
-    entries: list[File] = fields.Field(default_factory=list)
+    entries: list[File] = field(factory=list)
     """List of files on the record."""
 
     def __getitem__(self, key: str) -> File:
@@ -98,7 +114,7 @@ class FilesClient:
     Normally not used directly but from AsyncClient().records.read(...).files.
     """
 
-    def __init__(self, connection: Connection, files_endpoint: YarlURL):
+    def __init__(self, connection: Connection, files_endpoint: URL):
         """Initialize the client.
 
         :param connection: Connection to the repository
@@ -137,15 +153,18 @@ class FilesClient:
             file = FileDataSource(file)
 
         # 1. initialize the upload
+        transfer_md: dict[str, Any] = {
+        }
         transfer_payload = {
             "key": key,
             "metadata": metadata,
+            "transfer": transfer_md
         }
         if transfer_type != TransferType.LOCAL:
-            transfer_payload["transfer_type"] = transfer_type
+            transfer_md["type"] = transfer_type
 
         if transfer_metadata:
-            transfer_payload["transfer_metadata"] = transfer_metadata
+            transfer_md.update(transfer_metadata)
 
         from .transfer import transfer_registry
 

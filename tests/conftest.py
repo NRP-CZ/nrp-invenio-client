@@ -8,6 +8,7 @@
 from pathlib import Path
 
 import pytest
+from yarl import URL
 
 from invenio_nrp.config import Config, RepositoryConfig
 
@@ -28,11 +29,11 @@ def nrp_repository_config():
     config.add_repository(
         RepositoryConfig(
             alias="local",
-            url="https://127.0.0.1:5000",
+            url=URL("https://127.0.0.1:5000"),
             token=(Path(__file__).parent / "test-repository" / "repo" / ".token_a")
             .read_text()
             .strip(),
-            tls_verify=False,
+            verify_tls=False,
             retry_count=5,
             retry_after_seconds=10,
         )
@@ -40,11 +41,12 @@ def nrp_repository_config():
     config.add_repository(
         RepositoryConfig(
             alias="zenodo",
-            url="https://www.zenodo.org",
+            url=URL("https://www.zenodo.org"),
             token=None,
-            tls_verify=True,
+            verify_tls=True,
             retry_count=5,
             retry_after_seconds=10,
         )
     )
+    config.save()
     return config

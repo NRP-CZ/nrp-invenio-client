@@ -10,13 +10,14 @@
 from pathlib import Path
 from typing import Iterable, Optional
 
-from pydantic import BaseModel, Field
+from attrs import define, field
 
 
-class Variables(BaseModel):
+@define(kw_only=True)
+class Variables:
     """Variables for the commandline tools."""
 
-    variables: dict[str, list[str]] = Field(default_factory=dict)
+    variables: dict[str, list[str]] = field(factory=dict)
     """Internal dictionary of variables."""
 
     _config_file_path: Optional[Path] = None

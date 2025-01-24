@@ -9,59 +9,61 @@
 
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from attrs import define, field
+from yarl import URL
 
-from .yarl_url import YarlURL
+from ..types.base import Model
+from ..types.converter import Rename, extend_serialization
 
 
-class RepositoryInfoLinks(BaseModel):
+@extend_serialization(Rename("self", "self_"), allow_extra_data=True)
+@define(kw_only=True)
+class RepositoryInfoLinks(Model):
     """Links within the repository info endpoint."""
 
-    self_: Optional[YarlURL] = Field(alias="self", default=None)
+    self_: URL
     """Link to the repository itself"""
 
-    records: YarlURL
+    records: URL
     """Link to the global search endpoint"""
 
-    user_records: YarlURL
+    user_records: URL
     """Link to the user's records"""
 
-    models: Optional[YarlURL] = None
+    models: Optional[URL]
     """Link to the models in the repository"""
 
-    requests: YarlURL
+    requests: URL
     """Link to the requests in the repository"""
 
-    class Config:  # noqa
-        extra = "allow"
 
-
-class ModelInfoLinks(BaseModel):
+@define(kw_only=True)
+class ModelInfoLinks:
     """Links within the model info endpoint."""
 
-    api: YarlURL
+    api: URL
     """Link to the model records' API listing"""
 
-    html: YarlURL
+    html: URL
     """Link to the model records' HTML listing page"""
 
-    schemas: dict[str, YarlURL] = Field(alias="schemas")
-    """Link to the model expanded jsonschema and other schemas"""
-
-    model: YarlURL
+    model: URL
     """Link to the model definition"""
 
-    published: YarlURL
+    published: URL
     """Link to the published records"""
 
-    user_records: Optional[YarlURL] = Field(alias="user_records", default=None)
+    user_records: Optional[URL]
     """Link to the user's draft records"""
 
-    class Config:  # noqa
-        extra = "allow"
+    schemas: dict[str, URL] = field(factory=dict)
+    """Link to the model expanded jsonschema and other schemas"""
 
 
-class ModelInfoAccept(BaseModel):
+@define(kw_only=True)
+class ModelInfoAccept:
+    """Acceptable content-types for the model."""
+
     accept: str
     """The content-type accepted by the model"""
 
@@ -72,7 +74,8 @@ class ModelInfoAccept(BaseModel):
     """The description of the content-type"""
 
 
-class ModelInfo(BaseModel):
+@define(kw_only=True)
+class ModelInfo:
     """Information about metadata model within invenio server."""
 
     name: str
@@ -90,14 +93,12 @@ class ModelInfo(BaseModel):
     links: ModelInfoLinks
     """Links to the model"""
 
-    accept: list[ModelInfoAccept] = Field(default_factory=list)
+    accept: list[ModelInfoAccept] = field(factory=list)
     """List of supported content-types for API serialization"""
 
-    class Config:  # noqa
-        extra = "allow"
 
-
-class RepositoryInfo(BaseModel):
+@define(kw_only=True)
+class RepositoryInfo:
     """Extra info downloaded from nrp-compatible invenio repository."""
 
     name: str
@@ -112,13 +113,10 @@ class RepositoryInfo(BaseModel):
     invenio_version: str
     """The version of invenio the repository is based on"""
 
-    transfers: list[str]
-    """List of supported file transfer protocols"""
-
     links: RepositoryInfoLinks
     """Links to the repository"""
 
-    models: dict[str, ModelInfo] = Field(default_factory=dict)
+    transfers: list[str] = field(factory=list)
+    """List of supported file transfer protocols"""
 
-    class Config:  # noqa
-        extra = "allow"
+    models: dict[str, ModelInfo] = field(factory=dict)

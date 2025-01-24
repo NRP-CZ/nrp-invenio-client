@@ -7,16 +7,12 @@
 #
 """Client for the .well-known/repository endpoint."""
 
-from typing import cast
-
-from pydantic import RootModel
-
 from invenio_nrp.config import RepositoryConfig
 from invenio_nrp.types import RepositoryInfo
 from invenio_nrp.types.info import ModelInfo
 
 from ..errors import RepositoryClientError, RepositoryCommunicationError
-from ..rdm import _make_rdm_info
+from ..rdm import make_rdm_info
 from .connection import Connection
 
 
@@ -53,19 +49,21 @@ class AsyncInfoClient:
             )
             self._repository_config.info = info
 
-            ModelList = RootModel[list[ModelInfo]]
+            if not self._repository_config.info.links.models:
+                raise ValueError("The repository does not provide the models link.")
             models = await self._connection.get(
                 url=self._repository_config.info.links.models,
-                result_class=ModelList,
+                result_class=list[ModelInfo],
             )
             self._repository_config.info.models = {
-                model.name: model for model in models.root
+                model.name: model for model in models
             }
 
         except (RepositoryClientError, RepositoryCommunicationError):
             # not a NRP based repository, suppose that it is plain invenio rdm
             import traceback
-            traceback.print_exc()
-            self._repository_config.info = _make_rdm_info(self._repository_config.url)
 
-        return cast(RepositoryInfo, self._repository_config.info)
+            traceback.print_exc()
+            self._repository_config.info = make_rdm_info(self._repository_config.url)
+
+        return self._repository_config.info

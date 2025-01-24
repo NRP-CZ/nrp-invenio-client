@@ -8,18 +8,25 @@
 """Record client."""
 
 import copy
-from typing import Any, Dict, Optional, Protocol, Self
+from typing import Any, Optional, Protocol, Self
 
-from pydantic import field_validator, fields
+from attrs import define
 from yarl import URL
 
-from ...types import Model, YarlURL
-from .connection import Connection
+from ...types import Model
+from ...types.converter import (
+    Rename,
+    WrapUnstructure,
+    converter,
+    extend_serialization,
+)
+from .connection import Connection, connection_unstructure_hook
 from .files import FilesClient
 from .record_requests import RecordRequestsClient
 from .rest import BaseRecord, RESTList, RESTObjectLinks
 
 
+@define(kw_only=True)
 class RecordLinks(RESTObjectLinks):
     """Links of a record."""
 
@@ -27,30 +34,50 @@ class RecordLinks(RESTObjectLinks):
     pass
 
 
+@define(kw_only=True)
 class FilesEnabled(Model):
     """Files enabled marker."""
 
     enabled: bool
 
+@define(kw_only=True)
+class ParentRecord(Model):
+    """Parent record of the record."""
 
+    communities: dict[str, str]
+    """Communities of the record."""
+
+    workflow: str
+    """Workflow of the record."""
+
+# extend record serialization to allow extra data and rename files to files_
+@extend_serialization(
+    Rename("files", "files_"),
+    WrapUnstructure(connection_unstructure_hook),
+    allow_extra_data=True)
+@define(kw_only=True)
 class Record(BaseRecord):
     """Record in the repository."""
 
     links: RecordLinks
     """Links of the record."""
-    metadata: Optional[dict[str, Any]] = None
-    """Metadata of the record."""
-    files_: Optional[FilesEnabled] = fields.Field(alias="files")
+
+    files_: Optional[FilesEnabled] = None
     """Files enabled marker."""
 
-    @field_validator("files_", mode="before")
-    @classmethod
-    def transform(cls, raw: Any) -> Dict:  # noqa: ANN401
-        """Transform the raw data, zenodo serialization."""
-        if isinstance(raw, list):
-            # zenodo serialization
-            return {"enabled": len(raw) > 0}
-        return raw
+    metadata: Optional[dict[str, Any]] = None
+    """Metadata of the record."""
+
+    parent: Optional[ParentRecord] = None
+
+    # @field_validator("files_", mode="before")
+    # @classmethod
+    # def transform(cls, raw: Any) -> Dict:  # noqa: ANN401
+    #     """Transform the raw data, zenodo serialization."""
+    #     if isinstance(raw, list):
+    #         # zenodo serialization
+    #         return {"enabled": len(raw) > 0}
+    #     return raw
 
     async def delete(self) -> None:
         """Delete the record."""
@@ -66,7 +93,7 @@ class Record(BaseRecord):
 
         ret = await self._connection.put(
             url=self.links.self_,
-            data=self.model_dump_json(),  # type: ignore
+            json=converter.unstructure(self),  # type: ignore
             headers={
                 **headers,
                 "Content-Type": "application/json",
@@ -87,34 +114,34 @@ class Record(BaseRecord):
         """Get the files client for the record."""
         return FilesClient(self._connection, self.links.files)
 
+    
 
+@extend_serialization(allow_extra_data=False)
+@define(kw_only=True)
 class RecordList(RESTList[Record]):
     """List of records."""
 
-    sortBy: Optional[str]
+    sortBy: Optional[str] = None
     """Sort by field."""
-    aggregations: Optional[Any]
+    aggregations: Optional[Any] = None
     """Aggregations."""
-    hits: list[Record]
-    """List of records."""
-
 
 class CreateURL(Protocol):
     """Callable that returns the URL for creating a record."""
 
-    def __call__(self) -> YarlURL: ...  # noqa
+    def __call__(self) -> URL: ...  # noqa
 
 
 class ReadURL(Protocol):
     """Callable that returns the URL for reading a record."""
 
-    def __call__(self, record_id: str) -> YarlURL: ...  # noqa
+    def __call__(self, record_id: str) -> URL: ...  # noqa
 
 
 class SearchURL(Protocol):
     """Callable that returns the URL for searching records."""
 
-    def __call__(self) -> YarlURL: ...  # noqa
+    def __call__(self) -> URL: ...  # noqa
 
 
 class RecordClient:
@@ -155,7 +182,7 @@ class RecordClient:
         if idempotent:
             raise NotImplementedError("Idempotent for create not implemented yet")
 
-        create_url: YarlURL = self._create_url()
+        create_url: URL = self._create_url()
 
         data = {**data}
         if community or workflow:
@@ -207,7 +234,7 @@ class RecordClient:
         **facets: str,
     ) -> RecordList:
         """Search for records in the repository."""
-        search_url: YarlURL = self._search_url()
+        search_url: URL = self._search_url()
         query = {**facets}
         if q:
             query["q"] = q

@@ -10,8 +10,6 @@
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel
-
 from invenio_nrp.cli.base import OutputFormat
 
 

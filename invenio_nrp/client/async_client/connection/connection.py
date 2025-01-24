@@ -11,24 +11,34 @@ import contextlib
 import json as _json
 import logging
 from io import IOBase
-from typing import Any, AsyncIterator, Optional, Type, overload
+from typing import (
+    Any,
+    AsyncGenerator,
+    AsyncIterator,
+    Optional,
+    Type,
+    overload,
+)
 
 from aiohttp import ClientResponse, ClientSession, TCPConnector
 from aiohttp_retry import RetryClient
-from pydantic import BaseModel, ValidationError
+from attrs import define, field
+from cattrs.dispatch import UnstructureHook
 from yarl import URL
 
 from invenio_nrp.config import Config, RepositoryConfig
 
+from ...deserialize import deserialize_rest_response
 from ...errors import RepositoryCommunicationError, RepositoryError
 from .auth import AuthenticatedClientRequest, BearerAuthentication, BearerTokenForHost
+from .limiter import Limiter
 from .response import RepositoryResponse
 from .retry import ServerAssistedRetry
 
 log = logging.getLogger("invenio_nrp.async_client.connection")
 communication_log = logging.getLogger("invenio_nrp.communication")
 
-type HttpClient = RetryClient
+HttpClient = RetryClient
 
 
 @contextlib.asynccontextmanager
@@ -45,7 +55,12 @@ async def _cast_error() -> AsyncIterator[None]:
 class Connection:
     """Pre-configured asynchronous http connection."""
 
-    def __init__(self, config: Config, repository_config: RepositoryConfig):
+    def __init__(
+        self,
+        config: Config,
+        repository_config: RepositoryConfig,
+        number_of_parallel_requests: int = 10,
+    ):
         """Create a new connection with the given configuration.
 
         :param config:                  config for all known repositories
@@ -53,8 +68,9 @@ class Connection:
         """
         self._config = config
         self._repository_config = repository_config
+        self._limiter = Limiter(number_of_parallel_requests)
 
-        tokens = [
+        tokens: list[BearerTokenForHost] = [
             BearerTokenForHost(host_url=x.url, token=x.token)
             for x in self._config.repositories
             if x.token
@@ -62,7 +78,9 @@ class Connection:
         self.auth = BearerAuthentication(tokens)
 
     @contextlib.asynccontextmanager
-    async def _client(self, idempotent: bool = False) -> HttpClient:
+    async def _client(
+        self, idempotent: bool = False
+    ) -> AsyncGenerator[HttpClient, None]:
         """Create a new session with the repository and configure it with the token.
 
         :return: A new http client
@@ -93,7 +111,7 @@ class Connection:
         url: URL,
         result_class: Type[T],
         idempotent: bool = True,
-        result_context: dict | None = None,
+        result_context: dict[str, Any] | None = None,
         **kwargs: Any,  # noqa: ANN401
     ) -> T:
         """Perform a GET request to the repository.
@@ -101,7 +119,7 @@ class Connection:
         :param url:                 the url of the request
         :param idempotent:          True if the request is idempotent, should be for GET requests
         :param result_class:        successful response will be parsed to this class
-        :param result_context:      context for the result class will be passed to pydantic validation
+        :param result_context:      context for the result class will be passed to the converter
         :param kwargs:              any kwargs to pass to the aiohttp client
         :return:                    the parsed result
 
@@ -111,7 +129,9 @@ class Connection:
         """
         if communication_log.isEnabledFor(logging.INFO):
             communication_log.info("GET %s", url)
+
         async with (
+            self._limiter,
             self._client(idempotent=idempotent) as client,
             _cast_error(),
             client.get(url, auth=self.auth, **kwargs) as response,
@@ -122,11 +142,11 @@ class Connection:
         self,
         *,
         url: URL,
-        json: dict | list | None = None,
+        json: dict[str, Any] | list[Any] | None = None,
         data: bytes | None = None,
         idempotent: bool = False,
         result_class: Type[T],
-        result_context: dict | None = None,
+        result_context: dict[str, Any] | None = None,
         **kwargs: Any,  # noqa: ANN401
     ) -> T:
         """Perform a POST request to the repository.
@@ -136,7 +156,7 @@ class Connection:
         :param data:                the data payload of the request
         :param idempotent:          True if the request is idempotent, normally should be False
         :param result_class:        successful response will be parsed to this class
-        :param result_context:      context for the result class will be passed to pydantic validation
+        :param result_context:      context for the result class will be passed to the converter
         :param kwargs:              any kwargs to pass to the aiohttp client
         :return:                    the parsed result
 
@@ -152,6 +172,7 @@ class Connection:
             communication_log.info("%s", _json.dumps(json))
 
         async with (
+            self._limiter,
             self._client(idempotent=idempotent) as client,
             _cast_error(),
             client.post(
@@ -164,10 +185,10 @@ class Connection:
         self,
         *,
         url: URL,
-        json: dict | list | None = None,
+        json: dict[str, Any] | list[Any] | None = None,
         data: bytes | None = None,
         result_class: Type[T],
-        result_context: dict | None = None,
+        result_context: dict[str, Any] | None = None,
         **kwargs: Any,  # noqa: ANN401
     ) -> T:
         """Perform a PUT request to the repository.
@@ -176,7 +197,7 @@ class Connection:
         :param json:                    the json payload of the request (use exactly one of json or data)
         :param data:                    the data payload of the request
         :param result_class:            successful response will be parsed to this class
-        :param result_context:          context for the result class will be passed to pydantic validation
+        :param result_context:          context for the result class will be passed to the converter
         :param kwargs:                  any kwargs to pass to the aiohttp client
         :return:                        the parsed result
 
@@ -191,6 +212,7 @@ class Connection:
             communication_log.info("PUT %s", url)
             communication_log.info("%s", _json.dumps(json))
         async with (
+            self._limiter,
             self._client(idempotent=True) as client,
             _cast_error(),
             client.put(url, json=json, data=data, auth=self.auth, **kwargs) as response,
@@ -219,11 +241,12 @@ class Connection:
             communication_log.info("PUT %s", url)
             communication_log.info("(stream)")
         async with (
+            self._limiter,
             self._client(idempotent=True) as client,
             _cast_error(),
             client.put(url, data=file, auth=self.auth, **kwargs) as response,
         ):
-            await response.raise_for_invenio_status()
+            await response.raise_for_invenio_status()  # type: ignore
             return response
 
     async def delete(
@@ -247,6 +270,7 @@ class Connection:
         if communication_log.isEnabledFor(logging.INFO):
             communication_log.info("DELETE %s", url)
         async with (
+            self._limiter,
             self._client(idempotent=idempotent) as client,
             _cast_error(),
             client.delete(url, auth=self.auth, **kwargs) as response,
@@ -254,59 +278,54 @@ class Connection:
             return await self._get_call_result(response, None, None)
 
     @overload
-    async def _get_call_result[T: BaseModel](
+    async def _get_call_result[T](
         self,
         response: ClientResponse,
         result_class: Type[T],
-        result_context: dict | None,
+        result_context: dict[str, Any] | None,
     ) -> T: ...
 
     @overload
     async def _get_call_result(
-        self, response: ClientResponse, result_class: None, result_context: dict | None
-    ) -> None: ...
-
-    async def _get_call_result[T: BaseModel](
         self,
         response: ClientResponse,
-        result_class: Type[T] | None,
-        result_context: dict | None,
+        result_class: None,
+        result_context: dict[str, Any] | None,
+    ) -> None: ...
+
+    async def _get_call_result[T](
+        self,
+        response: ClientResponse,
+        result_class: type[T] | None,
+        result_context: dict[str, Any] | None,
     ) -> T | None:
         """Get the result from the response.
 
         :param response:            the aiohttp response
         :param result_class:        the class to parse the response to
-        :param result_context:      the context to pass to the pydantic validation
+        :param result_context:      the context to pass to the converter
         :return:                    the parsed result
 
         :raises RepositoryClientError: if the request fails due to client passing incorrect parameters (HTTP 4xx)
         :raises RepositoryServerError: if the request fails due to server error (HTTP 5xx)
         :raises RepositoryCommunicationError: if the request fails due to network
         """
-        await response.raise_for_invenio_status()
+        await response.raise_for_invenio_status()  # type: ignore
         if response.status == 204:
             assert result_class is None
             return None
         json_payload = await response.read()
         assert result_class is not None
-        try:
-            if communication_log.isEnabledFor(logging.INFO):
-                communication_log.info("%s", _json.dumps(_json.loads(json_payload)))
-            return result_class.model_validate_json(
-                json_payload,
-                strict=True,
-                context={
-                    **(result_context or {}),
-                    "etag": remove_quotes(response.headers.get("ETag")),
-                    "connection": self,
-                },
-            )
-        except ValidationError as e:
-            log.error("Error validating %s with %s", json_payload, result_class)
-            raise e
+        etag = remove_quotes(response.headers.get("ETag"))
+        return deserialize_rest_response(
+            self, 
+            communication_log,
+            json_payload, 
+            result_class, 
+            result_context, 
+            etag)
 
-
-def remove_quotes(etag: str) -> Optional[str]:
+def remove_quotes(etag: str | None) -> Optional[str]:
     """Remove quotes from an etag.
 
     :param etag:    the etag header
@@ -314,9 +333,39 @@ def remove_quotes(etag: str) -> Optional[str]:
     """
     if etag is None:
         return None
-    if etag.startswith('W/'):
+    if etag.startswith("W/"):
         etag = etag[2:]
     return etag.strip('"')
+
+def connection_unstructure_hook(data: Any, previous: UnstructureHook) -> Any:
+    ret = previous(data)
+    ret.pop('_connection', None)
+    ret.pop('_etag', None)
+    return ret
+
+
+
+@define(kw_only=True)
+class ConnectionMixin:
+    """A mixin for classes that are a result of a REST API call."""
+
+    _connection: Connection = field(init=False, default=None)
+    """Connection is automatically injected"""
+
+    _etag: Optional[str] = field(init=False, default=None)
+    """etag is automatically injected if it was returned by the repository"""
+    
+    def _set_connection_params(self, connection: Connection, etag: Optional[str] = None) -> None:
+        """Set the connection and etag."""
+        self._connection = connection
+        self._etag = etag
+
+    def _etag_headers(self) -> dict[str, str]:
+        """Return the headers with the etag if it was returned by the repository."""
+        headers: dict[str, str] = {}
+        if self._etag:
+            headers["If-Match"] = self._etag
+        return headers
 
 
 __all__ = ("HttpClient", "Connection")

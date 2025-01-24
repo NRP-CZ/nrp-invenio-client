@@ -8,21 +8,9 @@
 import tempfile
 from pathlib import Path
 
-import pytest
-from pydantic import BaseModel
 from yarl import URL
 
 from invenio_nrp.config import RepositoryConfig
-from invenio_nrp.types.yarl_url import YarlURL
-
-
-def test_url_parsing():
-    class A(BaseModel):
-        url: YarlURL
-
-    assert isinstance(A(url="https://example.com").url, URL)
-    with pytest.raises(ValueError, match="URL must be https"):
-        A(url="http://example.com")
 
 
 def test_config():
@@ -36,9 +24,9 @@ def test_config():
     config.add_repository(
         RepositoryConfig(
             alias="test",
-            url="https://example.com",
+            url=URL("https://example.com"),
             token="token",
-            tls_verify=True,
+            verify_tls=True,
             retry_count=5,
             retry_after_seconds=10,
         )
@@ -47,6 +35,10 @@ def test_config():
 
     with tempfile.NamedTemporaryFile() as f:
         config.save(Path(f.name))
+        print(Path(f.name).read_text())
         loaded_config = Config.from_file(Path(f.name))
+
+    print(config)
+    print(loaded_config)
 
     assert loaded_config == config

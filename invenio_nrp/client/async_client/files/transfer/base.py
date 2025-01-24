@@ -9,6 +9,8 @@
 
 from typing import Protocol
 
+from yarl import URL
+
 from ...connection import Connection
 from ..files import File
 from ..source import DataSource
@@ -18,7 +20,7 @@ class Transfer(Protocol):
     """Protocol for transferring files to the repository."""
 
     async def prepare(
-        self, connection: Connection, files_link: str, transfer_payload: dict
+        self, connection: Connection, files_link: URL, transfer_payload: dict
     ) -> None:
         """Prepare the transfer.
 

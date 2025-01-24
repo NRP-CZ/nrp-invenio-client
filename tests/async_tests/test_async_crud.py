@@ -9,24 +9,20 @@ import pytest
 from rich import print
 
 from invenio_nrp.client import AsyncClient
-from invenio_nrp.client.async_client.files import File
 from invenio_nrp.client.async_client.records import Record
-from invenio_nrp.client.async_client.request_types import RequestType
-from invenio_nrp.client.async_client.requests import Request
 from invenio_nrp.client.errors import RepositoryCommunicationError
-from invenio_nrp.types import Model
 
 
 async def test_create_record(local_client: AsyncClient):
-    records_client = local_client.user_records()
+    records_client = local_client.user_records(model="simple")
     rec = await records_client.create_record(
         {"metadata": {"title": "test"}}, community="acom"
     )
     assert isinstance(rec, Record)
     print(rec)
     assert rec.id is not None
-    assert rec.metadata["title"] == "test"
-    assert rec.parent["communities"]["default"] is not None
+    assert rec.metadata and rec.metadata["title"] == "test"
+    assert rec.parent and rec.parent.communities["default"] is not None
 
 
 @pytest.mark.skip()
@@ -97,9 +93,23 @@ async def test_update_draft_record(local_client: AsyncClient):
 async def test_read_all_records(local_client: AsyncClient):
     # create 30 records
     records_client = local_client.user_records()
+
+    # remove all records that might have been left from previous tests
+    fetched_records = []
+    async for record in (
+        await local_client.user_records().search(size=100, state="draft")
+    ).all():
+        fetched_records.append(record)
+
+    print(f"Total fetched records left from previous tests: {len(fetched_records)}")
+
+    for record in fetched_records:
+        await record.delete()
+
+    # create a bunch of records
     for i in range(30):
         await records_client.create_record(
-            {"metadata": {"title": f"test{i}"}}, community="acom"
+            {"metadata": {"title": f"test{1000+i}"}}, community="acom"
         )
 
     # read all records and check if they are at least 30, that is that pagination works
@@ -112,9 +122,6 @@ async def test_read_all_records(local_client: AsyncClient):
 
     print(f"Total fetched records: {len(fetched_records)}")
     assert len(fetched_records) >= 30
-
-    for record in fetched_records:
-        await record.delete()
 
     # now create controlled records
     created_records = []

@@ -8,6 +8,7 @@
 """A response that can raise parsed invenio errors."""
 
 import json
+from typing import Any
 
 from aiohttp import ClientResponse
 
@@ -29,14 +30,15 @@ class RepositoryResponse(ClientResponse):
         :raises RepositoryCommunicationError: if the status code is not 2xx nor 4xx nor 5xx
         """
         if not self.ok:
-            payload = await self.text()
+            payload_text = await self.text()
             self.release()
+            payload: Any
             try:
-                payload = json.loads(payload)
+                payload = json.loads(payload_text)
             except ValueError:
                 payload = {
                     "status": self.status,
-                    "reason": payload,
+                    "reason": payload_text,
                 }
 
             if self.status >= 500:

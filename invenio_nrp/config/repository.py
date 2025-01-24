@@ -9,20 +9,20 @@
 
 from typing import Optional
 
-from pydantic import BaseModel, model_validator
+from attrs import define
 from yarl import URL
 
 from invenio_nrp.types import RepositoryInfo
-from invenio_nrp.types.yarl_url import YarlURL
 
 
-class RepositoryConfig(BaseModel):
+@define(kw_only=True)
+class RepositoryConfig:
     """Configuration of the repository."""
 
     alias: str
     """The local alias of the repository."""
 
-    url: YarlURL
+    url: URL
     """The api URL of the repository, usually something like https://repository.org/api."""
 
     token: Optional[str] = None
@@ -43,21 +43,12 @@ class RepositoryConfig(BaseModel):
     class Config:  # noqa
         extra = "forbid"
 
-    @model_validator(mode="before")
-    @classmethod
-    def before_validate(cls, data: dict) -> dict:
-        """Prepare the data for validation."""
-        # backward compatibility
-        if "tls_verify" in data:
-            data["verify_tls"] = data.pop("tls_verify")
-        return data
-
     @property
-    def well_known_repository_url(self) -> YarlURL:
+    def well_known_repository_url(self) -> URL:
         """Return URL to the well-known repository endpoint."""
         return self.url / ".well-known" / "repository/"
 
-    def search_url(self, model: str | None) -> YarlURL:
+    def search_url(self, model: str | None) -> URL:
         """Return URL to search for published records within a model."""
         assert self.info is not None
         model = model or self._default_model_name
@@ -65,7 +56,7 @@ class RepositoryConfig(BaseModel):
             return self.info.models[model].links.published
         return self.info.links.records
 
-    def user_search_url(self, model: str | None) -> YarlURL:
+    def user_search_url(self, model: str | None) -> URL:
         """Return URL to search for user's records within a model."""
         assert self.info is not None
         model = model or self._default_model_name
@@ -73,7 +64,7 @@ class RepositoryConfig(BaseModel):
             return self.info.models[model].links.user_records
         return self.info.links.user_records
 
-    def create_url(self, model: str | None) -> YarlURL:
+    def create_url(self, model: str | None) -> URL:
         """Return URL to create a new record within a model."""
         assert self.info is not None
         model = model or self._default_model_name
@@ -106,7 +97,7 @@ class RepositoryConfig(BaseModel):
         return self.info.links.records / record_id / "draft"
 
     @property
-    def requests_url(self) -> YarlURL:
+    def requests_url(self) -> URL:
         """Return URL to the requests endpoint."""
         assert self.info is not None
         return self.info.links.requests
