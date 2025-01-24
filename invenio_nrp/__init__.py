@@ -6,3 +6,6 @@
 # details.
 #
 """API and commandline client for invenio repositories."""
+from .client import AsyncClient, SyncClient
+
+__all__ = ("AsyncClient", "SyncClient")
