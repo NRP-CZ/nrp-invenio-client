@@ -2,7 +2,7 @@ import json as _json
 import logging
 from typing import Any, Optional, cast, get_args, get_origin
 
-from ..types.converter import converter
+from ..converter import converter
 
 log = logging.getLogger("invenio_nrp.client.deserialize")
 

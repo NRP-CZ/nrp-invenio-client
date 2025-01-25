@@ -20,17 +20,16 @@ from requests import adapters
 from urllib3.util import Retry
 from yarl import URL
 
-from invenio_nrp.client.async_client.connection.auth import BearerTokenForHost
-from invenio_nrp.client.errors import (
+from ....config import Config, RepositoryConfig
+from ...auth import BearerTokenForHost
+from ...deserialize import deserialize_rest_response
+from ...errors import (
     RepositoryClientError,
     RepositoryCommunicationError,
     RepositoryError,
     RepositoryServerError,
 )
-from invenio_nrp.client.sync_client.connection.auth import BearerAuthentication
-from invenio_nrp.config import Config, RepositoryConfig
-
-from ...deserialize import deserialize_rest_response
+from .auth import BearerAuthentication
 
 log = logging.getLogger("invenio_nrp.sync_client.connection")
 communication_log = logging.getLogger("invenio_nrp.communication")

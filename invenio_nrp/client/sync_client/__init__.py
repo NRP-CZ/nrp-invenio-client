@@ -16,7 +16,7 @@ are not expecting to download large files or make many requests in parallel.
 Example usage:
 
 .. code-block:: python
-from invenio_nrp.client import SyncClient
+from invenio_nrp import SyncClient
 
 client = SyncClient()
 

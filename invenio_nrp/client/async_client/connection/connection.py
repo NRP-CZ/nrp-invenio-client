@@ -26,8 +26,7 @@ from attrs import define, field
 from cattrs.dispatch import UnstructureHook
 from yarl import URL
 
-from invenio_nrp.config import Config, RepositoryConfig
-
+from ....config import Config, RepositoryConfig
 from ...deserialize import deserialize_rest_response
 from ...errors import RepositoryCommunicationError, RepositoryError
 from .auth import AuthenticatedClientRequest, BearerAuthentication, BearerTokenForHost

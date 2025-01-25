@@ -15,8 +15,7 @@ from aiohttp_retry import RetryClient
 if TYPE_CHECKING:
     from .downloader import Downloader
 
-from invenio_nrp.client.async_client.files.sink.base import DataSink
-
+from ..sink.base import DataSink
 from .chunk import DownloadChunk
 
 

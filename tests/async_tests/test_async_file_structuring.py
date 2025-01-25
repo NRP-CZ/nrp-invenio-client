@@ -1,5 +1,5 @@
 from invenio_nrp.client.async_client.files.files import File, FileLinks
-from invenio_nrp.types.converter import converter
+from invenio_nrp.converter import converter
 
 
 def test_file_structuring():

@@ -7,9 +7,11 @@
 #
 """Command line interface for getting records."""
 
+import asyncio
 from pathlib import Path
 from typing import Optional
 
+import click
 import requests
 import typer
 from rich.console import Console
@@ -29,7 +31,18 @@ from invenio_nrp.config import Config, RepositoryConfig
 async def get_record(
     record_ids: Annotated[list[str], typer.Argument(help="Record ID")],
     output: Annotated[
-        Optional[Path], typer.Option("-o", help="Save the output to a file")
+        Optional[Path],
+        typer.Option(
+            "-o",
+            help="Save the output to a file",
+            click_type=click.Path(
+                file_okay=True,
+                writable=True,
+                resolve_path=True,
+                allow_dash=False,
+                path_type=Path,
+            ),
+        ),
     ] = None,
     output_format: Annotated[
         Optional[OutputFormat],
@@ -39,9 +52,8 @@ async def get_record(
     model: Annotated[Optional[str], typer.Option(help="Model name")] = None,
     expand: Annotated[bool, typer.Option(help="Expand the record")] = False,
     published: Annotated[
-        bool, typer.Option(help="Include only published records")
+        bool, typer.Option("--published/--draft", help="Include only published records")
     ] = True,
-    draft: Annotated[bool, typer.Option(help="Include only drafts")] = False,
 ) -> None:
     """Get a record from the repository."""
     console = Console()
@@ -56,19 +68,21 @@ async def get_record(
             ids.append(rec_id)
 
     # TODO: run this in parallel
-    for record_id in ids:
-        await get_single_record(
-            record_id,
-            console,
-            config,
-            repository,
-            model,
-            output,
-            output_format,
-            published,
-            draft,
-            expand,
-        )
+    async with asyncio.TaskGroup() as tg:
+        for record_id in ids:
+            tg.create_task(
+                get_single_record(
+                    record_id,
+                    console,
+                    config,
+                    repository,
+                    model,
+                    output,
+                    output_format,
+                    published,
+                    expand,
+                )
+            )
 
 
 async def get_single_record(
@@ -80,7 +94,6 @@ async def get_single_record(
     output: Path | None,
     output_format: OutputFormat | None,
     published: bool,
-    draft: bool,
     expand: bool,
 ) -> tuple[Record, Path | None, RepositoryConfig]:
     """Get a single record from the repository and print/save it."""
@@ -95,6 +108,7 @@ async def get_single_record(
     if output and output.parent:
         output.parent.mkdir(parents=True, exist_ok=True)
 
+    # note: this is synchronous, but it is not a problem as only metadata are printed/saved
     with OutputWriter(output, output_format, console, format_record_table) as printer:
         printer.output(record)
 

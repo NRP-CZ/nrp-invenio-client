@@ -8,9 +8,8 @@
 
 from functools import partial
 
-from invenio_nrp.config import Config, RepositoryConfig
-from invenio_nrp.types import RepositoryInfo
-
+from ...config import Config, RepositoryConfig
+from ...info import RepositoryInfo
 from .connection import Connection
 from .info import SyncInfoClient
 from .records import RecordClient

@@ -10,6 +10,7 @@
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Optional, Type
 
+import click
 import typer
 from deepmerge import always_merger
 from rich.console import Console
@@ -38,7 +39,14 @@ async def update_record(
         Optional[str], typer.Option("--path", "-p", help="Path within the metadata")
     ] = None,
     output: Annotated[
-        Optional[Path], typer.Option("-o", help="Save the output to a file")
+        Optional[Path], typer.Option("-o", help="Save the output to a file",
+                                     click_type = click.Path(
+                        file_okay=True,
+                        writable=True,
+                        resolve_path=True,
+                        allow_dash=False,
+                        path_type=Path,
+                    ))
     ] = None,
     output_format: Annotated[
         Optional[OutputFormat],

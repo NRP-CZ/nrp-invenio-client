@@ -10,6 +10,7 @@
 from pathlib import Path
 from typing import Optional
 
+import click
 import typer
 from rich.console import Console
 from typing_extensions import Annotated
@@ -25,7 +26,14 @@ from invenio_nrp.config import Config
 async def download_record(
     record_ids: Annotated[list[str], typer.Argument(help="Record ID")],
     output: Annotated[
-        Optional[Path], typer.Option("-o", help="Save the output to a file")
+        Optional[Path], typer.Option("-o", help="Save the output to a file",
+                                     click_type = click.Path(
+                        file_okay=True,
+                        writable=True,
+                        resolve_path=True,
+                        allow_dash=False,
+                        path_type=Path,
+                    ))
     ] = None,
     output_format: Annotated[
         Optional[OutputFormat],

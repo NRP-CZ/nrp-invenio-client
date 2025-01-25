@@ -7,11 +7,11 @@
 #
 """Bearer authentication support for aiohttp."""
 
-import dataclasses
 from typing import Optional
 
 from aiohttp import BasicAuth, ClientRequest, hdrs
-from yarl import URL
+
+from ...auth import BearerTokenForHost
 
 
 class Authentication(BasicAuth):
@@ -39,23 +39,6 @@ class AuthenticatedClientRequest(ClientRequest):
             return super().update_auth(auth, trust_env)
 
         auth.apply(self)
-
-
-@dataclasses.dataclass
-class BearerTokenForHost:
-    """URL and bearer token for the invenio repository."""
-
-    host_url: URL
-    """URL of the repository."""
-
-    token: str
-    """Bearer token for the repository."""
-
-    def __post_init__(self):
-        """Cast the host_url to URL if it is not already."""
-        if not isinstance(self.host_url, URL):
-            self.host_url = URL(self.host_url)
-        assert self.token is not None, "Token must be provided"
 
 
 class BearerAuthentication(Authentication):

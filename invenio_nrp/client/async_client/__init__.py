@@ -20,7 +20,7 @@ files at once.
 Example usage:
 
 .. code-block:: python
-from invenio_nrp.client import AsyncClient
+from invenio_nrp import AsyncClient
 
 client = AsyncClient()
 

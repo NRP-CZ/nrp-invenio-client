@@ -10,7 +10,7 @@
 import requests.auth
 from yarl import URL
 
-from invenio_nrp.client.async_client.connection.auth import BearerTokenForHost
+from ...auth import BearerTokenForHost
 
 
 class BearerAuthentication(requests.auth.AuthBase):

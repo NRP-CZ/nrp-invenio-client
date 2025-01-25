@@ -15,6 +15,7 @@ from rich import box
 from rich.table import Table
 
 from invenio_nrp.cli.base import write_table_row
+from invenio_nrp.converter import converter
 
 if TYPE_CHECKING:
     from invenio_nrp.client.async_client.records import Record, RecordList
@@ -41,7 +42,7 @@ def format_record_table(
 ) -> Generator[Table, None, None]:
     """Format a record as a table."""
     table = Table(f"Record {data.id}", box=box.SIMPLE, title_justify="left")
-    record_dump = data.model_dump()  # type: ignore
+    record_dump = converter.unstructure(data)
     for k, v in record_dump.items():
         if k != "metadata":
             write_table_row(table, k, v)

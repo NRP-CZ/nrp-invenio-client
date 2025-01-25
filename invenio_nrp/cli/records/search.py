@@ -10,6 +10,7 @@
 from pathlib import Path
 from typing import Optional
 
+import click
 import typer
 from rich.console import Console
 from typing_extensions import Annotated
@@ -36,16 +37,22 @@ async def search_records(
     ] = 10,
     page: Annotated[int, typer.Option(help="Page number")] = 1,
     sort: Annotated[Optional[str], typer.Option(help="Sort order")] = "bestmatch",
-    drafts: Annotated[bool, typer.Option(help="Include only drafts")] = False,
     published: Annotated[
-        bool, typer.Option(help="Include only published records")
+        bool, typer.Option("--published/--drafts", help="Include only published records")
     ] = True,
     output_format: Annotated[
         Optional[OutputFormat],
         typer.Option("--output-format", "-f", help="The format of the output"),
     ] = None,
     output: Annotated[
-        Optional[Path], typer.Option("--output", "-o", help="Save the output to a file")
+        Optional[Path], typer.Option("--output", "-o", help="Save the output to a file",
+                                     click_type = click.Path(
+                        file_okay=True,
+                        writable=True,
+                        resolve_path=True,
+                        allow_dash=False,
+                        path_type=Path,
+                    ))
     ] = None,
 ) -> None:
     """Return a page of records inside repository that match the given query."""
@@ -57,7 +64,7 @@ async def search_records(
         query = None
 
     records_api, args = await _prepare_search(
-        community, config, drafts, model, page, published, query, repository, size, sort
+        community, config, model, page, published, query, repository, size, sort
     )
 
     record_list = await records_api.search(**args)
@@ -74,7 +81,6 @@ async def search_records(
 async def _prepare_search(
     community: str | None,
     config: Config,
-    drafts: bool,
     model: str | None,
     page: int,
     published: bool,
@@ -99,7 +105,7 @@ async def _prepare_search(
         args["page"] = str(page)
     if size is not None:
         args["size"] = str(size)
-    if drafts:
+    if not published:
         args["status"] = "draft"
     return records_api, args
 
@@ -123,7 +129,14 @@ async def scan_records(
         typer.Option("--output-format", "-f", help="The format of the output"),
     ] = None,
     output: Annotated[
-        Optional[Path], typer.Option("--output", "-o", help="Save the output to a file")
+        Optional[Path], typer.Option("--output", "-o", help="Save the output to a file",
+                                     click_type = click.Path(
+                        file_okay=True,
+                        writable=True,
+                        resolve_path=True,
+                        allow_dash=False,
+                        path_type=Path,
+                    ))
     ] = None,
 ) -> None:
     """Return all records inside repository that match the given query."""

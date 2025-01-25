@@ -6,10 +6,8 @@
 
 """Client for the .well-known/repository endpoint."""
 
-from invenio_nrp.config import RepositoryConfig
-from invenio_nrp.types import RepositoryInfo
-from invenio_nrp.types.info import ModelInfo
-
+from ...config import RepositoryConfig
+from ...info import ModelInfo, RepositoryInfo
 from ..errors import RepositoryClientError, RepositoryCommunicationError
 from ..rdm import make_rdm_info
 from .connection import Connection

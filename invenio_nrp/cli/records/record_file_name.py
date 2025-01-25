@@ -11,12 +11,13 @@ from pathlib import Path
 from typing import Any
 
 from invenio_nrp.cli.base import OutputFormat
+from invenio_nrp.converter import converter
 
 
 def create_output_file_name(
     output_name: Path,
     obj_id: str,
-    obj: BaseModel,
+    obj: Any,
     output_format: OutputFormat | None,
     **kwargs: Any,  # noqa: ANN401
 ) -> Path:
@@ -49,7 +50,7 @@ def create_output_file_name(
 def format_part(
     part: str,
     obj_id: str,
-    obj: BaseModel,
+    obj: Any,
     output_format: OutputFormat,
     **kwargs: Any,  # noqa: ANN401
 ) -> str:
@@ -63,7 +64,7 @@ def format_part(
         options = {
             "id": obj_id,
             "ext": f".{output_format.value}" if output_format else "table",
-            **(obj.model_dump(mode="json")),
+            **(converter.unstructure(obj) if obj else {}),
             **kwargs,
         }
         return part.format(**options)

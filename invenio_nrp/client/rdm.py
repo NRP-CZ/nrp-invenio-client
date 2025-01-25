@@ -9,7 +9,7 @@
 
 from yarl import URL
 
-from invenio_nrp.types import RepositoryInfo, RepositoryInfoLinks
+from ..info import RepositoryInfo, RepositoryInfoLinks
 
 
 def make_rdm_info(url: URL) -> RepositoryInfo:

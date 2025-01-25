@@ -13,13 +13,13 @@ from typing import Any, Optional, Protocol, Self
 from attrs import define
 from yarl import URL
 
-from ...types import Model
-from ...types.converter import (
+from ...converter import (
     Rename,
     WrapUnstructure,
     converter,
     extend_serialization,
 )
+from ...types import Model
 from .connection import Connection, connection_unstructure_hook
 from .files import FilesClient
 from .record_requests import RecordRequestsClient

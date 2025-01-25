@@ -12,7 +12,7 @@ from typing import Any
 
 from aiohttp import ClientResponse
 
-from invenio_nrp.client.errors import (
+from ...errors import (
     RepositoryClientError,
     RepositoryCommunicationError,
     RepositoryServerError,

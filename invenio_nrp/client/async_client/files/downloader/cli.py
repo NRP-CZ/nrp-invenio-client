@@ -13,8 +13,7 @@ from typing import Annotated
 
 import typer
 
-from invenio_nrp.config import Config
-
+from .....config import Config
 from ...connection.auth import BearerAuthentication, BearerTokenForHost
 from ..sink.file import FileSink
 from .downloader import Downloader

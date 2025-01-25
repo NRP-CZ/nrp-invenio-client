@@ -23,8 +23,8 @@ from typing import (
 from attrs import define, field
 from yarl import URL
 
-from ...types.base import Model
-from ...types.converter import Rename, converter, extend_serialization
+from ...converter import Rename, converter, extend_serialization
+from ...types import Model
 from .connection import Connection, ConnectionMixin
 
 

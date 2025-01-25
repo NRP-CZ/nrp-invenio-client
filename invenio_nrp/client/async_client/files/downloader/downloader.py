@@ -15,18 +15,14 @@ from typing import Any, Optional, Self
 from aiohttp import ClientSession, TCPConnector
 from aiohttp_retry import RetryClient
 
-from invenio_nrp.client.async_client.connection.auth import (
+from ...connection.auth import (
     AuthenticatedClientRequest,
     Authentication,
 )
-from invenio_nrp.client.async_client.connection.retry import ServerAssistedRetry
-from invenio_nrp.client.async_client.files.sink.base import DataSink
-
+from ...connection.retry import ServerAssistedRetry
+from ..sink.base import DataSink
 from .job import DownloadJob
-from .limiter import Limiter
 from .progress import ProgressKeeper
-
-global_limiter = Limiter(10)
 
 
 @dataclasses.dataclass
@@ -62,9 +58,6 @@ class Downloader:
 
     progress: ProgressKeeper = dataclasses.field(default_factory=ProgressKeeper)
     """The callback to call when a progress event happens"""
-
-    limiter: Limiter = global_limiter
-    """The limiter to use for the download, defaults to a global one with 10 simultaneous connections"""
 
     _tg: Optional[asyncio.TaskGroup] = None
     """Asyncio task group for the downloader"""

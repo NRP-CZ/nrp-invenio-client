@@ -12,7 +12,7 @@ from typing import Optional
 from attrs import define
 from yarl import URL
 
-from invenio_nrp.types import RepositoryInfo
+from invenio_nrp.info import RepositoryInfo
 
 
 @define(kw_only=True)
@@ -40,6 +40,8 @@ class RepositoryConfig:
     info: Optional[RepositoryInfo] = None
     """Cached repository info"""
 
+    enabled: bool = True
+    
     class Config:  # noqa
         extra = "forbid"
 

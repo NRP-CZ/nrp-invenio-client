@@ -1,5 +1,5 @@
 from invenio_nrp.client.async_client.records import RecordList
-from invenio_nrp.types.converter import converter
+from invenio_nrp.converter import converter
 
 
 def test_record_list():

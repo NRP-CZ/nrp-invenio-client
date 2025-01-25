@@ -14,8 +14,8 @@ from attrs import define
 from cattrs.dispatch import StructureHook
 from yarl import URL
 
-from ...types.base import Model
-from ...types.converter import Rename, WrapStructure, extend_serialization
+from ...converter import Rename, WrapStructure, extend_serialization
+from ...types import Model
 from .connection import Connection
 from .rest import BaseRecord, RESTList, RESTObjectLinks
 

@@ -16,72 +16,79 @@ import typer
 
 from invenio_nrp.cli.records import (
     create_record,
-    download_record,
+    #     download_record,
     get_record,
     scan_records,
     search_records,
     update_record,
 )
 
-from .files import download_files, list_files, update_file_metadata, upload_files
+# from .files import download_files, list_files, update_file_metadata, upload_files
 from .repositories import (
     add_repository,
     describe_repository,
+    disable_repository,
+    enable_repository,
     list_repositories,
     remove_repository,
     select_repository,
 )
-from .repository_requests import create_request, list_requests
-from .variables import get_variable, list_variables, remove_variable, set_variable
+
+# from .repository_requests import create_request, list_requests
+# from .variables import get_variable, list_variables, remove_variable, set_variable
 
 commands = [
     # verb centric
     ("add", "repository", add_repository),
     ("create", "record", create_record),
-    ("create", "request", create_request),
+    # ("create", "request", create_request),
     ("describe", "repository", describe_repository),
-    ("download", "record", download_record),
-    ("download", "files", download_files),
-    ("download", "file", download_files),
+    ("disable", "repository", disable_repository),
+    # ("download", "record", download_record),
+    # ("download", "files", download_files),
+    # ("download", "file", download_files),
+    ("enable", "repository", enable_repository),
     ("get", "record", get_record),
-    ("get", "variable", get_variable),
-    ("list", "files", list_files),
+    # ("get", "variable", get_variable),
+    # ("list", "files", list_files),
     ("list", "records", search_records),
     ("list", "repositories", list_repositories),
-    ("list", "requests", list_requests),
-    ("list", "variables", list_variables),
+    # ("list", "requests", list_requests),
+    # ("list", "variables", list_variables),
     ("remove", "repository", remove_repository),
-    ("remove", "variable", remove_variable),
+    # ("remove", "variable", remove_variable),
     ("scan", "records", scan_records),
     ("search", "records", search_records),
     ("select", "repository", select_repository),
-    ("set", "variable", set_variable),
-    ("upload", "file", upload_files),
+    # ("set", "variable", set_variable),
+    # ("upload", "file", upload_files),
     ("update", "record", update_record),
-    ("update", "file", update_file_metadata),
+    # ("update", "file", update_file_metadata),
     # noun centric
-    ("files", "list", list_files),
-    ("files", "download", download_files),
-    ("files", "upload", upload_files),
-    ("files", "update", update_file_metadata),
+    # ("files", "list", list_files),
+    # ("files", "download", download_files),
+    # ("files", "upload", upload_files),
+    # ("files", "update", update_file_metadata),
     ("records", "create", create_record),
-    ("records", "download", download_record),
+    # ("records", "download", download_record),
     ("records", "get", get_record),
     ("records", "list", search_records),
     ("records", "search", search_records),
     ("records", "scan", scan_records),
     ("records", "update", update_record),
-    ("requests", "create", create_request),
-    ("requests", "list", list_requests),
+    # ("requests", "create", create_request),
+    # ("requests", "list", list_requests),
     ("repositories", "add", add_repository),
     ("repositories", "describe", describe_repository),
+    ("repositories", "disable", disable_repository),
+    ("repositories", "enable", enable_repository),
     ("repositories", "remove", remove_repository),
     ("repositories", "select", select_repository),
     ("repositories", "list", list_repositories),
-    ("variables", "get", get_variable),
-    ("variables", "set", set_variable),
-    ("variables", "remove", remove_variable),
-    ("variables", "list", list_variables),
+    # ("variables", "get", get_variable),
+    # ("variables", "set", set_variable),
+    # ("variables", "remove", remove_variable),
+    # ("variables", "list", list_variables),
 ]
 """CLI commands."""
 

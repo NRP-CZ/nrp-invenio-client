@@ -13,8 +13,8 @@ from typing import Any, Optional, Self
 from attrs import define, field
 from yarl import URL
 
+from ....converter import Rename, extend_serialization
 from ....types import Model
-from ....types.converter import Rename, extend_serialization
 from ..connection import Connection
 from ..rest import RESTObject, RESTObjectLinks
 from .source import DataSource

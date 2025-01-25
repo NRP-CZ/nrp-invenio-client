@@ -18,7 +18,7 @@ from attrs import define, field
 from cattrs.gen import make_dict_structure_fn, make_dict_unstructure_fn, override
 from yarl import URL
 
-from ..types.converter import converter
+from ..converter import converter
 from .repository import RepositoryConfig
 from .variables import Variables
 
@@ -81,6 +81,8 @@ class Config:
         """Get a repository by its alias."""
         for repo in self.repositories:
             if repo.alias == alias:
+                if not repo.enabled:
+                    raise ValueError(f"Repository with alias '{alias}' is disabled")
                 return repo
         raise KeyError(f"Repository with alias '{alias}' not found")
 
@@ -118,6 +120,8 @@ class Config:
         record_url = URL(record_url)
         repository_root_url = record_url.with_path("/")
         for repository in self.repositories:
+            if not repository.enabled:
+                continue
             if repository.url == repository_root_url:
                 return repository
         # return a dummy repository configuration

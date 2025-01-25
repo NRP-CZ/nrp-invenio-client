@@ -10,6 +10,7 @@
 from pathlib import Path
 from typing import Annotated, Optional
 
+import click
 import typer
 from rich import box
 from rich.console import Console
@@ -54,7 +55,14 @@ def remove_variable(
 def list_variables(
     output: Annotated[
         Optional[Path],
-        typer.Option(help="Save the output to a file"),
+        typer.Option(help="Save the output to a file",
+                     click_type = click.Path(
+                        file_okay=True,
+                        writable=True,
+                        resolve_path=True,
+                        allow_dash=False,
+                        path_type=Path,
+                    )),
     ] = None,
     output_format: Annotated[
         Optional[OutputFormat],
@@ -74,7 +82,13 @@ def get_variable(
     variable: Annotated[str, typer.Argument(help="The name of the variable")],
     output: Annotated[
         Optional[Path],
-        typer.Option(help="Save the output to a file"),
+        typer.Option(help="Save the output to a file", click_type = click.Path(
+                        file_okay=True,
+                        writable=True,
+                        resolve_path=True,
+                        allow_dash=False,
+                        path_type=Path,
+                    )),
     ] = None,
     output_format: Annotated[
         Optional[OutputFormat],

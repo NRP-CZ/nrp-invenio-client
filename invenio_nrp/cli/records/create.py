@@ -10,6 +10,7 @@
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
+import click
 import typer
 from rich.console import Console
 from typing_extensions import Annotated
@@ -39,7 +40,14 @@ async def create_record(
         bool, typer.Option(help="The record will only have metadata")
     ] = False,
     output: Annotated[
-        Optional[Path], typer.Option("-o", help="Save the output to a file")
+        Optional[Path], typer.Option("-o", help="Save the output to a file",
+                                     click_type = click.Path(
+                        file_okay=True,
+                        writable=True,
+                        resolve_path=True,
+                        allow_dash=False,
+                        path_type=Path,
+                    ))
     ] = None,
     output_format: Annotated[
         Optional[OutputFormat],
@@ -62,7 +70,7 @@ async def create_record(
     client = AsyncClient(alias=repository, config=config)
     records_api: RecordClient = client.user_records(model)
     record = await records_api.create_record(
-        metadata_json,
+        {"metadata": metadata_json},
         community=community,
         workflow=workflow,
         files_enabled=not metadata_only,
