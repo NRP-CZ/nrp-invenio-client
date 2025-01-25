@@ -10,7 +10,7 @@
 from functools import partial
 
 from ...config import Config, RepositoryConfig
-from ...info import RepositoryInfo
+from ...config.info import RepositoryInfo
 from .connection import Connection
 from .info import AsyncInfoClient
 from .records import RecordClient

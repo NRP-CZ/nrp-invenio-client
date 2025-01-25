@@ -30,7 +30,7 @@ from invenio_nrp.converter import converter
 from .base import OutputFormat, OutputWriter
 
 if TYPE_CHECKING:
-    from invenio_nrp.info import ModelInfo
+    from invenio_nrp.config.info import ModelInfo
 
 
 def add_repository(

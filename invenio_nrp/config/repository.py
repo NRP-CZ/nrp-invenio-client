@@ -12,7 +12,7 @@ from typing import Optional
 from attrs import define
 from yarl import URL
 
-from invenio_nrp.info import RepositoryInfo
+from invenio_nrp.config.info import RepositoryInfo
 
 
 @define(kw_only=True)

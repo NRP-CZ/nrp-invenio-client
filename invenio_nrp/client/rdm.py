@@ -9,7 +9,7 @@
 
 from yarl import URL
 
-from ..info import RepositoryInfo, RepositoryInfoLinks
+from ..config.info import RepositoryInfo, RepositoryInfoLinks
 
 
 def make_rdm_info(url: URL) -> RepositoryInfo:

@@ -22,8 +22,12 @@ class StdInDataSource(DataSource):
 
     # TODO: how to correctly type this?
     @contextlib.asynccontextmanager
-    async def open(self, offset: int = 0) -> AsyncIterator[DataReader]:  # type: ignore
+    async def open(self, offset: int = 0, count: int | None = None) -> AsyncIterator[DataReader]:  # type: ignore
         """Open the data source for reading."""
+        if count is not None:
+            raise ValueError("Cannot read a bounded stream from standard input.")
+        if offset != 0:
+            raise ValueError("Cannot seek in standard input.")
         ret = await open_file(Path("/sys/stdin"), mode="rb")
         yield ret
         await ret.close()

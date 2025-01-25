@@ -7,7 +7,7 @@
 """Client for the .well-known/repository endpoint."""
 
 from ...config import RepositoryConfig
-from ...info import ModelInfo, RepositoryInfo
+from ...config.info import ModelInfo, RepositoryInfo
 from ..errors import RepositoryClientError, RepositoryCommunicationError
 from ..rdm import make_rdm_info
 from .connection import Connection

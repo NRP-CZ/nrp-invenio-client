@@ -12,8 +12,8 @@ from typing import Optional
 from attrs import define, field
 from yarl import URL
 
-from .converter import Rename, extend_serialization
-from .types import Model
+from ..converter import Rename, extend_serialization
+from ..types import Model
 
 
 @extend_serialization(Rename("self", "self_"), allow_extra_data=True)

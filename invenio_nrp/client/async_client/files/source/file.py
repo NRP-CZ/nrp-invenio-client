@@ -15,6 +15,7 @@ import magic
 
 from ..os import DataReader, file_stat, open_file
 from .base import DataSource
+from .bounded_stream import BoundedStream
 
 
 class FileDataSource(DataSource):
@@ -33,11 +34,14 @@ class FileDataSource(DataSource):
 
     # TODO: how to correctly type this?
     @contextlib.asynccontextmanager
-    async def open(self, offset: int = 0) -> AsyncIterator[DataReader]:  # type: ignore
+    async def open(self, offset: int = 0, count: int | None = None) -> AsyncIterator[DataReader]:  # type: ignore
         """Open the file for reading."""
         ret = await open_file(self._file_name, mode="rb")
         await ret.seek(offset)
-        yield ret
+        if not count:
+            yield ret
+        else:
+            yield BoundedStream(ret, count)
         await ret.close()
 
     async def size(self) -> int:

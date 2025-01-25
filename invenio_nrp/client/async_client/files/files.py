@@ -29,12 +29,13 @@ class TransferType(StrEnum):
     FETCH = "F"
     REMOTE = "R"
 
-@extend_serialization(Rename("self", "self_"), allow_extra_data=True)
+
+@extend_serialization(Rename("type", "type_"), allow_extra_data=True)
 @define(kw_only=True)
 class FileTransfer(Model):
     """File transfer metadata."""
 
-    type_ : str = field(default=TransferType.LOCAL.value)
+    type_: str = field(default=TransferType.LOCAL.value)
 
 
 @define(kw_only=True)
@@ -74,9 +75,11 @@ class File(RESTObject):
     links: FileLinks
     """Links to the file content and commit."""
 
-    transfer: Optional[FileTransfer] = None
+    transfer: FileTransfer = field(
+        factory=lambda: FileTransfer(type_=TransferType.LOCAL.value)
+    )
     """File transfer type and metadata."""
-    
+
     status: Optional[str] = None
 
     async def save(self) -> Self:
@@ -153,13 +156,8 @@ class FilesClient:
             file = FileDataSource(file)
 
         # 1. initialize the upload
-        transfer_md: dict[str, Any] = {
-        }
-        transfer_payload = {
-            "key": key,
-            "metadata": metadata,
-            "transfer": transfer_md
-        }
+        transfer_md: dict[str, Any] = {}
+        transfer_payload = {"key": key, "metadata": metadata, "transfer": transfer_md}
         if transfer_type != TransferType.LOCAL:
             transfer_md["type"] = transfer_type
 
@@ -170,7 +168,10 @@ class FilesClient:
 
         transfer = transfer_registry.get(transfer_type)
 
-        await transfer.prepare(self._connection, self._files_endpoint, transfer_payload)
+        await transfer.prepare(self._connection, 
+                               self._files_endpoint, 
+                               transfer_payload, 
+                               file)
 
         initialized_upload: FilesList = await self._connection.post(
             url=self._files_endpoint,
@@ -186,10 +187,13 @@ class FilesClient:
         # 3. prepare the commit payload
         commit_payload = await transfer.get_commit_payload(initialized_upload_metadata)
 
-        committed_upload = await self._connection.post(
-            url=initialized_upload_metadata.links.commit,
-            json=commit_payload,
-            result_class=File,
-        )
+        if initialized_upload_metadata.links.commit:
+            committed_upload = await self._connection.post(
+                url=initialized_upload_metadata.links.commit,
+                json=commit_payload,
+                result_class=File,
+            )
 
-        return committed_upload
+            return committed_upload
+        else:
+            return initialized_upload_metadata

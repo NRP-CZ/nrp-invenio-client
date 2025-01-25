@@ -21,6 +21,7 @@ from typing import (
 )
 
 from aiohttp import ClientResponse, ClientSession, TCPConnector
+from aiohttp.streams import StreamReader
 from aiohttp_retry import RetryClient
 from attrs import define, field
 from cattrs.dispatch import UnstructureHook
@@ -247,6 +248,34 @@ class Connection:
         ):
             await response.raise_for_invenio_status()  # type: ignore
             return response
+
+    @contextlib.asynccontextmanager
+    async def get_stream(
+        self,
+        *,
+        url: URL,
+        **kwargs: Any,  # noqa: ANN401
+    ) -> AsyncGenerator[StreamReader, None]:
+        """Perform a GET request to the repository.
+
+        :param url:                 the url of the request
+        :param kwargs:              any kwargs to pass to the aiohttp client
+        :return:                    the parsed result
+
+        :raises RepositoryClientError: if the request fails due to client passing incorrect parameters (HTTP 4xx)
+        :raises RepositoryServerError: if the request fails due to server error (HTTP 5xx)
+        :raises RepositoryCommunicationError: if the request fails due to network error
+        """
+        if communication_log.isEnabledFor(logging.INFO):
+            communication_log.info("GET %s", url)
+
+        async with (
+            self._limiter,
+            self._client(idempotent=True) as client,
+            _cast_error(),
+            client.get(url, auth=self.auth, **kwargs) as response,
+        ):
+            yield response.content
 
     async def delete(
         self,

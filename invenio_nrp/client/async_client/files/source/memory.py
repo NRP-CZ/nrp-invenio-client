@@ -31,9 +31,12 @@ class MemoryDataSource(DataSource):
 
     # TODO: how to correctly type this?
     @contextlib.asynccontextmanager
-    async def open(self, offset: int = 0) -> AsyncIterator[DataReader]:  # type: ignore
+    async def open(self, offset: int = 0, count: int | None = None) -> AsyncIterator[DataReader]:  # type: ignore
         """Open the data source for reading."""
-        yield MemoryReader(self._data[offset:])  # noqa ignore type
+        if count is not None:
+            yield MemoryReader(self._data[offset : offset + count])
+        else:
+            yield MemoryReader(self._data[offset:])  # noqa ignore type
 
     async def size(self) -> int:
         """Return the size of the data."""

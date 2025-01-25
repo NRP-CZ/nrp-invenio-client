@@ -17,10 +17,11 @@ class DataSource(Protocol):
 
     has_range_support: bool = False
 
-    async def open(self, offset: int = 0) -> AsyncContextManager[DataReader]:
+    async def open(self, offset: int = 0, count: int | None = None) -> AsyncContextManager[DataReader]:
         """Open the data source for reading.
 
         :param offset:      where to start reading from
+        :param count:       how many bytes to read, if None, read until the end
         :return:            a reader for the data source
         """
         ...

@@ -7,6 +7,8 @@
 #
 """Local transfer."""
 
+from yarl import URL
+
 from ...connection import Connection
 from ..files import DataSource, File
 from . import Transfer
@@ -27,6 +29,9 @@ class LocalTransfer(Transfer):
         file: DataSource,
     ) -> None:
         """Upload the file."""
+        if not initialized_upload.links.content:
+            raise ValueError("The upload does not provide the content link.")
+        
         async with file.open() as open_file:  # type: ignore
             await connection.put_stream(
                 url=initialized_upload.links.content,
@@ -34,7 +39,8 @@ class LocalTransfer(Transfer):
             )
 
     async def prepare(
-        self, connection: Connection, files_link: str, transfer_payload: dict
+        self, connection: Connection, files_link: URL, transfer_payload: dict,
+        file: DataSource
     ) -> None:
         """Prepare the transfer."""
         pass

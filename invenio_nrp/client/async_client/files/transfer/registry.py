@@ -44,5 +44,7 @@ transfer_registry = TransferRegistry()
 # supported transfers are registered here
 #
 from .local import LocalTransfer  # noqa
+from .multipart import MultipartTransfer  # noqa
 
 transfer_registry.register(TransferType.LOCAL, LocalTransfer)
+transfer_registry.register(TransferType.MULTIPART, MultipartTransfer)

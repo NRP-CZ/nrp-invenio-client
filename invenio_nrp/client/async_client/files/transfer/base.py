@@ -20,7 +20,8 @@ class Transfer(Protocol):
     """Protocol for transferring files to the repository."""
 
     async def prepare(
-        self, connection: Connection, files_link: URL, transfer_payload: dict
+        self, connection: Connection, files_link: URL, transfer_payload: dict,
+        file: DataSource
     ) -> None:
         """Prepare the transfer.
 
