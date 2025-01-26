@@ -56,7 +56,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          apt install -y imagemagick libcairo2-dev
+          sudo apt install -y imagemagick libcairo2-dev
 
       - name: Configure sysctl limits
         run: |
