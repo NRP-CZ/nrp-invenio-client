@@ -16,7 +16,6 @@ export NRP_USE_UV=1
 uv cache clean
 
 # TODO: remove this once the installer is fixed
-export LOCAL_NRP_DEVTOOLS_LOCATION=~/w/cesnet/nrp-devtools
 
 install_test_repository() {
   if [ -d "$TEST_REPOSITORY_PATH" ]; then
