@@ -32,11 +32,13 @@ jobs:
       - name: Show oarepo version
         run: |
           echo "OAREPO_VERSION: >>>$OAREPO_VERSION<<< >>>${{ inputs.oarepo }}<<<"
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v3
         with:
           python-version: "3.12"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
       - name: Cache pip
         uses: actions/cache@v3
         with:
