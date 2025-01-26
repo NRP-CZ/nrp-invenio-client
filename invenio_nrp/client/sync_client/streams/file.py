@@ -81,7 +81,7 @@ class FileSource(DataSource):
         ret = open_file(self._file_name, mode="rb")
         ret.seek(offset)
         if not count:
-            return ret
+            return BoundedStream(ret, self.size())
         else:
             return BoundedStream(ret, count)
 

@@ -375,7 +375,7 @@ class Connection:
         def _copy_stream(response: requests.Response) -> None:
             chunk = sink.open_chunk(offset=offset)
             try:
-                for data in response.raw.read_chunked():
+                for data in response.iter_content(chunk_size=16384):
                     chunk.write(data)
             finally:
                 chunk.close()
@@ -391,6 +391,7 @@ class Connection:
             _copy_stream,
             idempotent=True,
             headers={"Range": range_header},
+            stream=True,
             **kwargs
         )
 

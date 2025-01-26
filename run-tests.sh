@@ -40,6 +40,7 @@ install_test_repository() {
   # drop database so that tables from the model are created (otherwise would need to run alembic ...)
   docker compose -f docker/docker-compose.yml down || true
   ./nrp check --fix
+  ./nrp build
 
   source .venv/bin/activate
   invenio users create a@test.com --password atestcom -c -a
@@ -59,3 +60,26 @@ install_test_repository() {
   # run in a subshell in case environment or cwd is changed
   install_test_repository
 )
+
+(
+  cd "$TEST_REPOSITORY_BASE"
+  cd repo
+  source .venv/bin/activate
+  FLASK_DEBUG=1 invenio run --cert ./docker/development.crt --key ./docker/development.key &
+  invenio_pid=$!
+  sleep 10
+  echo "$invenio_pid" >.invenio_pid
+)
+
+kill_invenio() {
+  if [ -f "$TEST_REPOSITORY_BASE/repo/.invenio_pid" ]; then
+    invenio_pid=$(cat "$TEST_REPOSITORY_BASE/repo/.invenio_pid")
+    kill -9 "$invenio_pid" || true
+    rm -f "$TEST_REPOSITORY_BASE/repo/.invenio_pid"
+  fi
+}
+
+trap kill_invenio EXIT
+
+# run tests
+pytest -v tests

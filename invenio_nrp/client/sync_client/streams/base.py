@@ -22,6 +22,9 @@ class InputStream(Protocol):
 
     def close(self) -> None:
         ...
+        
+    def __len__(self) -> int:
+        ...
 
 
 class OutputStream(Protocol):

@@ -29,6 +29,10 @@ class BoundedStream(InputStream):
         self._remaining -= len(data)
         return data
 
+    def __len__(self) -> int:
+        """Return the stream size."""
+        return self.limit
+
     def close(self) -> None:
         """Close the underlying stream."""
         self._stream.close()
@@ -36,3 +40,11 @@ class BoundedStream(InputStream):
     def __getattr__(self, name: str) -> Any:
         """Delegate all other calls to the underlying stream."""
         return getattr(self._stream, name)
+    
+    def __iter__(self):
+         return self
+    
+    def __next__(self) -> bytes:
+        return self.read(16384)
+    
+    
