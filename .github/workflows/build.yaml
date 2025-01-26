@@ -50,6 +50,14 @@ jobs:
             ${{ runner.os }}-pip-
             ${{ runner.os }}-
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '21'
+
+      - name: Install dependencies
+        run: |
+          apt install -y imagemagick libcairo2-dev
+
       - name: Configure sysctl limits
         run: |
           sudo swapoff -a
