@@ -7,13 +7,11 @@
 """Files for Synchronous client for the NRP Invenio repository."""
 
 from .files import File, FilesClient, FilesList, TransferType
-from .source import FileDataSource, MemoryDataSource
 
 __all__ = (
     "File",
     "FilesList",
     "TransferType",
     "FilesClient",
-    "FileDataSource",
-    "MemoryDataSource",
 )
+

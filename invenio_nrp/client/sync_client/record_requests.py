@@ -38,3 +38,4 @@ class RecordRequestsClient(RequestClient):
             result_class=RequestTypeList,
             params=params,
         )
+

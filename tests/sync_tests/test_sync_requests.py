@@ -100,3 +100,4 @@ def test_list_requests(local_client: SyncClient, draft_record):
             break
     else:
         assert False, "Request not found in accepted requests"
+

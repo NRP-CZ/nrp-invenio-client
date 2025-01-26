@@ -6,7 +6,8 @@
 
 """Different transfers to the invenio repository."""
 
-from .base import Transfer
+from .base import Transfer, TransferType
 from .registry import transfer_registry
 
-__all__ = ("Transfer", "transfer_registry")
+__all__ = ("Transfer", "transfer_registry", "TransferType")
+

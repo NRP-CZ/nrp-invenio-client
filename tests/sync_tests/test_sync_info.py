@@ -34,3 +34,4 @@ def test_sync_info_zenodo(zenodo_client):
     assert info.links.models is None
     assert info.links.records == URL("https://www.zenodo.org/api/records/")
     assert info.links.user_records == URL("https://www.zenodo.org/api/user/records/")
+

@@ -17,3 +17,4 @@ def test_file_structuring():
         }
     }
     output = converter.structure(data, File)
+    assert isinstance(output.links, FileLinks)

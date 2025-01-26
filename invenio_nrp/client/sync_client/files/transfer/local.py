@@ -5,10 +5,18 @@
 
 
 """Local transfer."""
+from __future__ import annotations
 
-from ...connection import Connection
-from ..files import DataSource, File
+from typing import TYPE_CHECKING
+
 from . import Transfer
+
+if TYPE_CHECKING:
+    from yarl import URL
+
+    from ...connection import Connection
+    from ...streams import DataSource
+    from ..files import File
 
 
 class LocalTransfer(Transfer):
@@ -23,17 +31,20 @@ class LocalTransfer(Transfer):
         self,
         connection: Connection,
         initialized_upload: File,
-        file: DataSource,
+        source: DataSource,
     ) -> None:
         """Upload the file."""
-        with file.open() as open_file:  # type: ignore
-            connection.put_stream(
-                url=initialized_upload.links.content,
-                file=open_file,
-            )
+        if not initialized_upload.links.content:
+            raise ValueError("The upload does not provide the content link.")
+        
+        connection.put_stream(
+            url=initialized_upload.links.content,
+            source=source,
+        )
 
     def prepare(
-        self, connection: Connection, files_link: str, transfer_payload: dict
+        self, connection: Connection, files_link: URL, transfer_payload: dict,
+        source: DataSource
     ) -> None:
         """Prepare the transfer."""
         pass
@@ -41,3 +52,4 @@ class LocalTransfer(Transfer):
     def get_commit_payload(self, initialized_upload: File) -> dict:
         """Get payload for finalization of the successful upload."""
         return {}
+

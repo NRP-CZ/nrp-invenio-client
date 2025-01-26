@@ -56,11 +56,9 @@ class SyncInfoClient:
                 model.name: model for model in models
             }
 
-        except (RepositoryClientError, RepositoryCommunicationError):
+        except* (RepositoryClientError, RepositoryCommunicationError):
             # not a NRP based repository, suppose that it is plain invenio rdm
-            import traceback
-
-            traceback.print_exc()
             self._repository_config.info = make_rdm_info(self._repository_config.url)
 
         return self._repository_config.info
+

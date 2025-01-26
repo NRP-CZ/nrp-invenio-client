@@ -7,6 +7,7 @@
 #
 """Asynchronous connection for the NRP client using the aiohttp and aiohttp-retry library."""
 
+import asyncio
 import contextlib
 import json as _json
 import logging
@@ -39,6 +40,7 @@ from ...errors import (
 )
 from ..streams.base import DataSink, DataSource
 from .auth import AuthenticatedClientRequest, BearerAuthentication, BearerTokenForHost
+from .aws_limits import MINIMAL_DOWNLOAD_PART_SIZE, adjust_download_multipart_params
 from .limiter import Limiter
 from .response import RepositoryResponse
 from .retry import ServerAssistedRetry
@@ -505,6 +507,53 @@ class Connection:
                     actual_data.close()
 
         raise Exception("unreachable")
+
+    async def download_file(
+        self, url: URL, sink: DataSink, 
+        parts: int | None =None, 
+        part_size : int | None = None) -> None:
+
+        try:
+            headers = await self.head(url=url)
+        except RepositoryClientError:
+            # The file is not available for HEAD. This is the case for S3 files
+            # where the file is a pre-signed request. We'll try to download the headers
+            # with a GET request with a range header containing only the first byte.
+            headers = await self.head(url=url, use_get=True)
+
+        size = 0
+        location = URL(headers.get('Location', url))
+        
+        if "Content-Length" in headers:
+            size = int(headers["Content-Length"])
+            await sink.allocate(size)
+
+        if (
+            size
+            and size > MINIMAL_DOWNLOAD_PART_SIZE
+            and any(x == "bytes" for x in headers.getall("Accept-Ranges"))
+        ):
+            await self._download_multipart(location, sink, size, parts, part_size)
+        else:
+            await self._download_single(location, sink)
+
+    async def _download_single(self, url: URL, sink: DataSink) -> None:
+        await self.get_stream(url=url, sink=sink, offset=0)
+
+    async def _download_multipart(
+        self, url: URL, sink: DataSink, size: int, parts: int | None = None, part_size: int | None = None
+    ) -> None:
+        adjusted_parts, adjusted_part_size = adjust_download_multipart_params(size, parts, part_size)
+
+        async with asyncio.TaskGroup() as tg:
+            for i in range(adjusted_parts):
+                start = i * adjusted_part_size
+                size = min((i + 1) * adjusted_part_size, size) - start
+                tg.create_task(
+                    self.get_stream(
+                        url=url, sink=sink, offset=start, size=size
+                    )
+                )
 
 
 def remove_quotes(etag: str | None) -> Optional[str]:

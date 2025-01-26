@@ -143,3 +143,4 @@ def test_read_all_records(local_client: SyncClient):
     # and clean up
     for record in created_records:
         record.delete()
+

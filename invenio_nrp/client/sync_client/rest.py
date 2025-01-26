@@ -179,3 +179,4 @@ def is_record_id(t: Any) -> bool:
 
 converter.register_structure_hook_func(is_record_id, lambda v, ty: v)
 converter.register_unstructure_hook_func(is_record_id, lambda v: v)
+

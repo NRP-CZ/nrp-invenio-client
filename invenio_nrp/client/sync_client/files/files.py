@@ -6,7 +6,6 @@
 
 """Representation of invenio files."""
 
-from enum import StrEnum
 from pathlib import Path
 from typing import Any, Optional, Self
 
@@ -17,23 +16,16 @@ from ....converter import Rename, extend_serialization
 from ....types import Model
 from ..connection import Connection
 from ..rest import RESTObject, RESTObjectLinks
-from .source import DataSource
+from ..streams import DataSink, DataSource
+from .transfer import TransferType
 
 
-class TransferType(StrEnum):
-    """Transfer types between local/remote storage and repository."""
-
-    LOCAL = "L"
-    MULTIPART = "M"
-    FETCH = "F"
-    REMOTE = "R"
-
-@extend_serialization(Rename("self", "self_"), allow_extra_data=True)
+@extend_serialization(Rename("type", "type_"), allow_extra_data=True)
 @define(kw_only=True)
 class FileTransfer(Model):
     """File transfer metadata."""
 
-    type_ : str = field(default=TransferType.LOCAL.value)
+    type_: str = field(default=TransferType.LOCAL.value)
 
 
 @define(kw_only=True)
@@ -73,9 +65,11 @@ class File(RESTObject):
     links: FileLinks
     """Links to the file content and commit."""
 
-    transfer: Optional[FileTransfer] = None
+    transfer: FileTransfer = field(
+        factory=lambda: FileTransfer(type_=TransferType.LOCAL.value)
+    )
     """File transfer type and metadata."""
-    
+
     status: Optional[str] = None
 
     def save(self) -> Self:
@@ -87,6 +81,19 @@ class File(RESTObject):
             },
             result_class=type(self),
         )
+
+    def download(self, sink: DataSink, 
+                       parts: int | None = None,
+                       part_size: int | None = None) -> None:
+        """Download the file content to a sink.
+
+        Will use
+        :param sink: The sink to download the file to.
+        """
+        if self.links.content is None:
+            raise ValueError("No content link available for the file")
+
+        self._connection.download_file(self.links.content, sink, parts, part_size)
 
 
 @define(kw_only=True)
@@ -133,7 +140,7 @@ class FilesClient:
         self,
         key: str,
         metadata: dict[str, Any],
-        file: DataSource | str | Path,
+        source: DataSource | str | Path,
         transfer_type: TransferType = TransferType.LOCAL,
         transfer_metadata: dict | None = None,
     ) -> File:
@@ -146,19 +153,14 @@ class FilesClient:
         :param transfer_metadata:   extra metadata for the transfer
         :return:                    metadata of the uploaded file
         """
-        if isinstance(file, (str, Path)):
+        if isinstance(source, str | Path):
             from .source.file import FileDataSource
 
-            file = FileDataSource(file)
+            source = FileDataSource(source)
 
         # 1. initialize the upload
-        transfer_md: dict[str, Any] = {
-        }
-        transfer_payload = {
-            "key": key,
-            "metadata": metadata,
-            "transfer": transfer_md
-        }
+        transfer_md: dict[str, Any] = {}
+        transfer_payload = {"key": key, "metadata": metadata, "transfer": transfer_md}
         if transfer_type != TransferType.LOCAL:
             transfer_md["type"] = transfer_type
 
@@ -169,7 +171,9 @@ class FilesClient:
 
         transfer = transfer_registry.get(transfer_type)
 
-        transfer.prepare(self._connection, self._files_endpoint, transfer_payload)
+        transfer.prepare(
+            self._connection, self._files_endpoint, transfer_payload, source
+        )
 
         initialized_upload: FilesList = self._connection.post(
             url=self._files_endpoint,
@@ -180,15 +184,19 @@ class FilesClient:
         initialized_upload_metadata = initialized_upload[key]
 
         # 2. upload the file using one of the transfer types
-        transfer.upload(self._connection, initialized_upload_metadata, file)
+        transfer.upload(self._connection, initialized_upload_metadata, source)
 
         # 3. prepare the commit payload
         commit_payload = transfer.get_commit_payload(initialized_upload_metadata)
 
-        committed_upload = self._connection.post(
-            url=initialized_upload_metadata.links.commit,
-            json=commit_payload,
-            result_class=File,
-        )
+        if initialized_upload_metadata.links.commit:
+            committed_upload = self._connection.post(
+                url=initialized_upload_metadata.links.commit,
+                json=commit_payload,
+                result_class=File,
+            )
 
-        return committed_upload
+            return committed_upload
+        else:
+            return initialized_upload_metadata
+

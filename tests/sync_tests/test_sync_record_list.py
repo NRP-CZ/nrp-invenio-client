@@ -28,3 +28,4 @@ def test_record_list():
         },
     }
     output = converter.structure(data, RecordList)
+

@@ -282,3 +282,4 @@ class RequestClient:
             url=self._requests_url / request_id,
             result_class=Request,
         )
+

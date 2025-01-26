@@ -88,3 +88,4 @@ class RequestTypeList(RESTList[RequestType]):
         if type_id in self.keys():
             return self[type_id]
         return super().__getattr__(type_id)
+

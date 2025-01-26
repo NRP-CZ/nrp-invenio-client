@@ -51,3 +51,4 @@ def draft_record_with_files(request, local_client):
         community="acom",
         files_enabled=True,
     )
+

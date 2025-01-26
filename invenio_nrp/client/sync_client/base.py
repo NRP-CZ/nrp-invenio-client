@@ -89,3 +89,4 @@ class SyncClient(Connection):
         :return: API for requests
         """
         return RequestClient(self, self._repository_config.requests_url)
+

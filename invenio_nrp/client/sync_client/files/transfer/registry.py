@@ -5,11 +5,15 @@
 
 
 """Registry of known transfer types."""
+from __future__ import annotations
 
-from typing import Type
+from typing import TYPE_CHECKING
 
-from ..files import TransferType
-from .base import Transfer
+from .base import TransferType
+
+if TYPE_CHECKING:
+
+    from .base import Transfer
 
 
 class TransferRegistry:
@@ -19,7 +23,7 @@ class TransferRegistry:
         """Initialize the registry."""
         self.transfers = {}
 
-    def register(self, transfer_type: TransferType, transfer: Type[Transfer]) -> None:
+    def register(self, transfer_type: TransferType, transfer: type[Transfer]) -> None:
         """Register a transfer type.
 
         :param transfer_type:       transfer type
@@ -43,5 +47,8 @@ transfer_registry = TransferRegistry()
 # supported transfers are registered here
 #
 from .local import LocalTransfer  # noqa
+from .multipart import MultipartTransfer  # noqa
 
 transfer_registry.register(TransferType.LOCAL, LocalTransfer)
+transfer_registry.register(TransferType.MULTIPART, MultipartTransfer)
+

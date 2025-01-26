@@ -5,21 +5,34 @@
 
 
 """Transfer protocols."""
+from __future__ import annotations
 
-from typing import Protocol
+from enum import StrEnum
+from typing import TYPE_CHECKING, Protocol
 
-from yarl import URL
+if TYPE_CHECKING:
+    from yarl import URL
 
-from ...connection import Connection
-from ..files import File
-from ..source import DataSource
+    from ...connection import Connection
+    from ..files import File
+    from ..source import DataSource
+
+
+class TransferType(StrEnum):
+    """Transfer types between local/remote storage and repository."""
+
+    LOCAL = "L"
+    MULTIPART = "M"
+    FETCH = "F"
+    REMOTE = "R"
 
 
 class Transfer(Protocol):
     """Protocol for transferring files to the repository."""
 
     def prepare(
-        self, connection: Connection, files_link: URL, transfer_payload: dict
+        self, connection: Connection, files_link: URL, transfer_payload: dict,
+        source: DataSource
     ) -> None:
         """Prepare the transfer.
 
@@ -33,7 +46,7 @@ class Transfer(Protocol):
         self,
         connection: Connection,
         initialized_upload: File,
-        file: DataSource,
+        source: DataSource,
     ) -> None:
         """Upload the file.
 
@@ -53,3 +66,4 @@ class Transfer(Protocol):
         :return:                        metadata of the upload as returned from the repository
         """
         ...
+
