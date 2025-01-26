@@ -7,30 +7,30 @@
 #
 """Data source that reads data from standard input."""
 
-import contextlib
 from pathlib import Path
-from typing import AsyncIterator
 
-from ..os import DataReader, open_file
-from .base import DataSource
+from .base import DataSource, InputStream
+from .os import open_file
 
 
 class StdInDataSource(DataSource):
     """A data source that reads data from standard input."""
 
-    has_range_support = False
+    def __init__(self) -> None:
+        super().__init__()
+        self._opened = False
 
-    # TODO: how to correctly type this?
-    @contextlib.asynccontextmanager
-    async def open(self, offset: int = 0, count: int | None = None) -> AsyncIterator[DataReader]:  # type: ignore
+    async def open(self, offset: int = 0, count: int | None = None) -> InputStream:
         """Open the data source for reading."""
+        if self._opened:
+            raise RuntimeError("Cannot open the same data source multiple times.")
+        self._opened = True
         if count is not None:
             raise ValueError("Cannot read a bounded stream from standard input.")
         if offset != 0:
             raise ValueError("Cannot seek in standard input.")
         ret = await open_file(Path("/sys/stdin"), mode="rb")
-        yield ret
-        await ret.close()
+        return ret
 
     async def size(self) -> int:
         """Return the size of the data - in this case -1 as unknown."""

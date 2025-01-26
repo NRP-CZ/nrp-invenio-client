@@ -11,8 +11,8 @@ from struct import pack
 import pytest
 
 from invenio_nrp.client.async_client.files import File, FilesClient, TransferType
-from invenio_nrp.client.async_client.files.source.memory import MemoryDataSource
 from invenio_nrp.client.async_client.records import Record
+from invenio_nrp.client.async_client.streams import MemorySink, MemorySource
 
 
 async def test_list_files(draft_record: Record, draft_record_with_files: Record):
@@ -31,7 +31,7 @@ async def test_list_files(draft_record: Record, draft_record_with_files: Record)
     committed_upload = await files.upload(
         key="blah.txt",
         metadata={"title": "blah"},
-        file=MemoryDataSource(data, content_type="text/plain"),
+        source=MemorySource(data, content_type="text/plain"),
     )
 
     print(committed_upload)
@@ -61,7 +61,7 @@ async def test_multipart_upload(draft_record_with_files: Record, data_size, part
     committed_upload: File = await files.upload(
         key="blah.txt",
         metadata={"title": "blah"},
-        file=MemoryDataSource(io.getvalue(), content_type="text/plain"),
+        source=MemorySource(io.getvalue(), content_type="text/plain"),
         transfer_type=TransferType.MULTIPART,
         transfer_metadata={"parts": parts},
     )
@@ -76,8 +76,6 @@ async def test_multipart_upload(draft_record_with_files: Record, data_size, part
 
     # read the file back
     print("Downloading the file back")
-    async with committed_upload._connection.get_stream(
-        url=committed_upload.links.content
-    ) as stream:
-        data = await stream.read()
-        assert data == io.getvalue()
+    sink = MemorySink()
+    await committed_upload.download(sink)
+    assert sink._buffer == io.getvalue()

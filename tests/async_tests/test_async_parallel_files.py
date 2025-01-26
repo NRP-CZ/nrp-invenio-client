@@ -8,11 +8,8 @@
 import asyncio
 import time
 
-from invenio_nrp.client.async_client.files import File
-from invenio_nrp.client.async_client.files.source.memory import MemoryDataSource
 from invenio_nrp.client.async_client.records import Record
-from invenio_nrp.client.async_client.request_types import RequestType
-from invenio_nrp.client.async_client.requests import Request
+from invenio_nrp.client.async_client.streams import MemorySource
 
 
 async def test_create_many_files_in_parallel(draft_record_with_files: Record):
@@ -27,7 +24,7 @@ async def test_create_many_files_in_parallel(draft_record_with_files: Record):
                 files.upload(
                     key=f"blah_{fn}.txt",
                     metadata={"title": "blah"},
-                    file=MemoryDataSource(data, content_type="text/plain"),
+                    source=MemorySource(data, content_type="text/plain"),
                 )
             )
     t2 = time.time()
@@ -41,7 +38,7 @@ async def test_create_many_files_in_parallel(draft_record_with_files: Record):
         await files.upload(
             key=f"blah_{10+fn}.txt",
             metadata={"title": "blah"},
-            file=MemoryDataSource(data, content_type="text/plain"),
+            source=MemorySource(data, content_type="text/plain"),
         )
     t2 = time.time()
     print(f"Time to upload 10 files sequentially: {(t2 - t1) * 1000} ms")

@@ -34,6 +34,11 @@ class RepositoryJSONError(RepositoryCommunicationError):
         self._response = response
 
     @property
+    def request_info(self) -> Any:
+        """Return the request info."""
+        return self._request_info
+
+    @property
     def json(self) -> dict:
         """Return the JSON response."""
         return self._response

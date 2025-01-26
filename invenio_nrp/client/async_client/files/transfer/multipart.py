@@ -7,14 +7,22 @@
 #
 """Local transfer."""
 
+from __future__ import annotations
+
 import asyncio
+from typing import TYPE_CHECKING
 
 from yarl import URL
 
-from ...connection import Connection
-from ..files import DataSource, File, MultipartUploadLinks
 from . import Transfer
-from .aws_limits import fix_multipart_params
+from .aws_limits import adjust_upload_multipart_params
+
+if TYPE_CHECKING:
+    from yarl import URL
+
+    from ...connection import Connection
+    from ...streams import DataSource
+    from ..files import File, MultipartUploadLinks
 
 
 class MultipartTransfer(Transfer):
@@ -30,15 +38,15 @@ class MultipartTransfer(Transfer):
         connection: Connection,
         files_link: URL,
         transfer_payload: dict,
-        file: DataSource,
+        source: DataSource,
     ) -> None:
         """Prepare the transfer."""
         if not transfer_payload.get("size"):
-            transfer_payload["size"] = await file.size()
+            transfer_payload["size"] = await source.size()
 
         transfer_md = transfer_payload.get("transfer", {})
 
-        parts, part_size = fix_multipart_params(
+        parts, part_size = adjust_upload_multipart_params(
             transfer_payload["size"],
             transfer_md.get("parts"),
             transfer_md.get("part_size"),
@@ -50,7 +58,7 @@ class MultipartTransfer(Transfer):
         self,
         connection: Connection,
         initialized_upload: File,
-        file: DataSource,
+        source: DataSource,
     ) -> None:
         """Upload the file."""
         links: list[MultipartUploadLinks] = initialized_upload.links.parts or []
@@ -65,18 +73,17 @@ class MultipartTransfer(Transfer):
             for pt in range(number_of_parts):
                 start = pt * part_size
                 count = min(part_size, size - start)
-
-                async with file.open(offset=start, count=count) as open_file:
-                    tg.create_task(
-                        connection.put_stream(
-                            url=links[pt].url,
-                            file=open_file,
-                            headers={
-                                "Content-Length": str(count),
-                                "Content-Type": "application/octet-stream",
-                            }
-                        )
+                tg.create_task(
+                    connection.put_stream(
+                        url=links[pt].url,
+                        source=source,
+                        open_kwargs={"offset": start, "count": count},
+                        headers={
+                            "Content-Length": str(count),
+                            "Content-Type": "application/octet-stream",
+                        }
                     )
+                )
 
     async def get_commit_payload(self, initialized_upload: File) -> dict:
         """Get payload for finalization of the successful upload."""

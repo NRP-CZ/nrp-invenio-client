@@ -10,26 +10,34 @@
 import contextlib
 import json as _json
 import logging
-from io import IOBase
-from typing import (
-    Any,
+from collections.abc import (
     AsyncGenerator,
     AsyncIterator,
+    Awaitable,
+    Callable,
+)
+from functools import partial
+from typing import (
+    Any,
     Optional,
-    Type,
     overload,
 )
 
 from aiohttp import ClientResponse, ClientSession, TCPConnector
-from aiohttp.streams import StreamReader
 from aiohttp_retry import RetryClient
 from attrs import define, field
 from cattrs.dispatch import UnstructureHook
+from multidict import CIMultiDictProxy
 from yarl import URL
 
 from ....config import Config, RepositoryConfig
 from ...deserialize import deserialize_rest_response
-from ...errors import RepositoryCommunicationError, RepositoryError
+from ...errors import (
+    RepositoryClientError,
+    RepositoryCommunicationError,
+    RepositoryError,
+)
+from ..streams.base import DataSink, DataSource
 from .auth import AuthenticatedClientRequest, BearerAuthentication, BearerTokenForHost
 from .limiter import Limiter
 from .response import RepositoryResponse
@@ -39,6 +47,39 @@ log = logging.getLogger("invenio_nrp.async_client.connection")
 communication_log = logging.getLogger("invenio_nrp.communication")
 
 HttpClient = RetryClient
+
+
+class try_until_success:
+    def __init__(self, attempts: int):
+        self.attempts = attempts
+        self.attempt = 0
+        self.done = False
+        self.failures: list[Exception] = []
+
+    def __iter__(self):
+        while not self.done and self.attempt < self.attempts:
+            i = self.attempt
+            yield self
+            assert i != self.attempt, "attempt not attempted"
+
+        if self.done:
+            return
+
+        if self.failures:
+            raise ExceptionGroup("Failures in HTTP transport", self.failures)
+
+    async def __aenter__(self):
+        self.attempt += 1
+
+    async def __aexit__(self, _ext, exc, _tb):
+        if exc:
+            if isinstance(exc, RepositoryClientError):
+                return False
+            else:
+                self.failures.append(exc)
+                return True
+
+        self.done = True
 
 
 @contextlib.asynccontextmanager
@@ -105,12 +146,38 @@ class Connection:
             )
             yield retry_client
 
+    async def head(
+        self,
+        *,
+        url: URL,
+        use_get: bool = False,
+        **kwargs: Any,  # noqa: ANN401
+    ) -> CIMultiDictProxy[str]:
+        """Perform a HEAD request to the repository.
+
+        :param url:                 the url of the request
+        :param idempotent:          True if the request is idempotent, should be for HEAD requests
+        :param kwargs:              any kwargs to pass to the aiohttp client
+        :return:                    None
+
+        :raises RepositoryClientError: if the request fails due to client passing incorrect parameters (HTTP 4xx)
+        :raises RepositoryServerError: if the request fails due to server error (HTTP 5xx)
+        :raises RepositoryCommunicationError: if the request fails due to network
+        """
+        async def _head(response: ClientResponse) -> CIMultiDictProxy[str]:
+            return response.headers
+
+        if use_get:
+            return await self._retried("GET", url, _head, idempotent=True,
+                                       headers={"Range": "bytes=0-0"})
+        else:
+            return await self._retried("HEAD", url, _head, idempotent=True)
+
     async def get[T](
         self,
         *,
         url: URL,
-        result_class: Type[T],
-        idempotent: bool = True,
+        result_class: type[T],
         result_context: dict[str, Any] | None = None,
         **kwargs: Any,  # noqa: ANN401
     ) -> T:
@@ -127,16 +194,17 @@ class Connection:
         :raises RepositoryServerError: if the request fails due to server error (HTTP 5xx)
         :raises RepositoryCommunicationError: if the request fails due to network error
         """
-        if communication_log.isEnabledFor(logging.INFO):
-            communication_log.info("GET %s", url)
-
-        async with (
-            self._limiter,
-            self._client(idempotent=idempotent) as client,
-            _cast_error(),
-            client.get(url, auth=self.auth, **kwargs) as response,
-        ):
-            return await self._get_call_result(response, result_class, result_context)
+        return await self._retried(
+            "GET",
+            url,
+            partial(
+                self._get_call_result,
+                result_class=result_class,
+                result_context=result_context,
+            ),
+            idempotent=True,
+            **kwargs
+        )
 
     async def post[T](
         self,
@@ -145,7 +213,7 @@ class Connection:
         json: dict[str, Any] | list[Any] | None = None,
         data: bytes | None = None,
         idempotent: bool = False,
-        result_class: Type[T],
+        result_class: type[T],
         result_context: dict[str, Any] | None = None,
         **kwargs: Any,  # noqa: ANN401
     ) -> T:
@@ -167,19 +235,20 @@ class Connection:
         assert (
             json is not None or data is not None
         ), "Either json or data must be provided"
-        if communication_log.isEnabledFor(logging.INFO):
-            communication_log.info("POST %s", url)
-            communication_log.info("%s", _json.dumps(json))
 
-        async with (
-            self._limiter,
-            self._client(idempotent=idempotent) as client,
-            _cast_error(),
-            client.post(
-                url, json=json, data=data, auth=self.auth, **kwargs
-            ) as response,
-        ):
-            return await self._get_call_result(response, result_class, result_context)
+        return await self._retried(
+            "POST",
+            url,
+            partial(
+                self._get_call_result,
+                result_class=result_class,
+                result_context=result_context,
+            ),
+            idempotent=idempotent,
+            json=json,
+            data=data,
+            **kwargs
+        )
 
     async def put[T](
         self,
@@ -187,7 +256,7 @@ class Connection:
         url: URL,
         json: dict[str, Any] | list[Any] | None = None,
         data: bytes | None = None,
-        result_class: Type[T],
+        result_class: type[T],
         result_context: dict[str, Any] | None = None,
         **kwargs: Any,  # noqa: ANN401
     ) -> T:
@@ -208,22 +277,27 @@ class Connection:
         assert (
             json is not None or data is not None
         ), "Either json or data must be provided"
-        if communication_log.isEnabledFor(logging.INFO):
-            communication_log.info("PUT %s", url)
-            communication_log.info("%s", _json.dumps(json))
-        async with (
-            self._limiter,
-            self._client(idempotent=True) as client,
-            _cast_error(),
-            client.put(url, json=json, data=data, auth=self.auth, **kwargs) as response,
-        ):
-            return await self._get_call_result(response, result_class, result_context)
+
+        return await self._retried(
+            "PUT",
+            url,
+            partial(
+                self._get_call_result,
+                result_class=result_class,
+                result_context=result_context,
+            ),
+            idempotent=True,
+            json=json,
+            data=data,
+            **kwargs,
+        )
 
     async def put_stream(
         self,
         *,
         url: URL,
-        file: IOBase,
+        source: DataSource,
+        open_kwargs: dict[str, Any] | None = None,
         **kwargs: Any,  # noqa: ANN401
     ) -> ClientResponse:
         """Perform a PUT request to the repository with a file.
@@ -237,26 +311,29 @@ class Connection:
         :raises RepositoryServerError: if the request fails due to server error (HTTP 5xx)
         :raises RepositoryCommunicationError: if the request fails due to network
         """
-        if communication_log.isEnabledFor(logging.INFO):
-            communication_log.info("PUT %s", url)
-            communication_log.info("(stream)")
-        async with (
-            self._limiter,
-            self._client(idempotent=True) as client,
-            _cast_error(),
-            client.put(url, data=file, auth=self.auth, **kwargs) as response,
-        ):
-            await response.raise_for_invenio_status()  # type: ignore
+
+        async def _put(response: ClientResponse) -> ClientResponse:
             return response
 
-    @contextlib.asynccontextmanager
+        return await self._retried(
+            "PUT",
+            url,
+            _put,
+            idempotent=True,
+            data=partial(source.open, **(open_kwargs or {})),
+            **kwargs
+        )
+
     async def get_stream(
         self,
         *,
         url: URL,
+        sink: DataSink,
+        offset: int = 0,
+        size: int | None = None,
         **kwargs: Any,  # noqa: ANN401
-    ) -> AsyncGenerator[StreamReader, None]:
-        """Perform a GET request to the repository.
+    ) -> None:
+        """Perform a GET request to the repository and write the response to a sink.
 
         :param url:                 the url of the request
         :param kwargs:              any kwargs to pass to the aiohttp client
@@ -266,16 +343,28 @@ class Connection:
         :raises RepositoryServerError: if the request fails due to server error (HTTP 5xx)
         :raises RepositoryCommunicationError: if the request fails due to network error
         """
-        if communication_log.isEnabledFor(logging.INFO):
-            communication_log.info("GET %s", url)
-
-        async with (
-            self._limiter,
-            self._client(idempotent=True) as client,
-            _cast_error(),
-            client.get(url, auth=self.auth, **kwargs) as response,
-        ):
-            yield response.content
+        
+        async def _copy_stream(response: ClientResponse) -> None:
+            chunk = await sink.open_chunk(offset=offset)
+            try:
+                async for data in response.content.iter_any():
+                    await chunk.write(data)
+            finally:
+                await chunk.close()
+        
+        if size is not None:
+            range_header = f"bytes={offset}-{offset + size - 1}"
+        else:
+            range_header = f"bytes={offset}-"
+        
+        await self._retried(
+            "GET",
+            url,
+            _copy_stream,
+            idempotent=True,
+            headers={"Range": range_header},
+            **kwargs
+        )
 
     async def delete(
         self,
@@ -295,21 +384,19 @@ class Connection:
         :raises RepositoryServerError: if the request fails due to server error (HTTP 5xx)
         :raises RepositoryCommunicationError: if the request fails due to network
         """
-        if communication_log.isEnabledFor(logging.INFO):
-            communication_log.info("DELETE %s", url)
-        async with (
-            self._limiter,
-            self._client(idempotent=idempotent) as client,
-            _cast_error(),
-            client.delete(url, auth=self.auth, **kwargs) as response,
-        ):
-            return await self._get_call_result(response, None, None)
+        return await self._retried(
+            "DELETE",
+            url,
+            None,
+            idempotent=idempotent,
+            **kwargs
+        )
 
     @overload
     async def _get_call_result[T](
         self,
         response: ClientResponse,
-        result_class: Type[T],
+        result_class: type[T],
         result_context: dict[str, Any] | None,
     ) -> T: ...
 
@@ -344,14 +431,81 @@ class Connection:
             return None
         json_payload = await response.read()
         assert result_class is not None
+        if issubclass(result_class, ClientResponse):
+            return response
         etag = remove_quotes(response.headers.get("ETag"))
         return deserialize_rest_response(
-            self, 
-            communication_log,
-            json_payload, 
-            result_class, 
-            result_context, 
-            etag)
+            self, communication_log, json_payload, result_class, result_context, etag
+        )
+
+    @overload
+    async def _retried[T](
+        self,
+        method: str,
+        url: URL,
+        callback: Callable[[ClientResponse], Awaitable[T]],
+        idempotent: bool,
+        **kwargs: Any,  # noqa: ANN401
+    ) -> T: ...
+    
+    @overload
+    async def _retried(
+        self,
+        method: str,
+        url: URL,
+        callback: None,
+        idempotent: bool,
+        **kwargs: Any,  # noqa: ANN401
+    ) -> None: ...
+
+    async def _retried[T](
+        self,
+        method: str,
+        url: URL,
+        callback: Callable[[ClientResponse], Awaitable[T]] | None,
+        idempotent: bool,
+        **kwargs: Any,  # noqa: ANN401
+    ) -> T | None:
+        """Log the start of a request and retry it if necessary."""
+        json = kwargs.get("json")
+        if json is not None and callable(json):
+            json = json()
+            kwargs["json"] = json
+
+        data = kwargs.get("data")
+
+        if communication_log.isEnabledFor(logging.INFO):
+            communication_log.info("%s %s", method.upper(), url)
+            if json is not None:
+                communication_log.info("%s", _json.dumps(json))
+            if data is not None:
+                communication_log.info("(stream)")
+
+        for attempt in try_until_success(
+            self._repository_config.retry_count if idempotent else 1
+        ):
+            actual_data = None
+            if data is not None and callable(data):
+                actual_data = await data()
+                kwargs["data"] = actual_data
+            try:
+                async with (
+                    attempt,
+                    self._limiter,
+                    self._client(idempotent=True) as client,
+                    _cast_error(),
+                    client.request(method, url, auth=self.auth, **kwargs) as response,
+                ):
+                    await response.raise_for_invenio_status()  # type: ignore
+                    if callback is not None:
+                        return await callback(response)
+                    return None
+            finally:
+                if actual_data is not None and hasattr(actual_data, "close"):
+                    actual_data.close()
+
+        raise Exception("unreachable")
+
 
 def remove_quotes(etag: str | None) -> Optional[str]:
     """Remove quotes from an etag.
@@ -365,12 +519,12 @@ def remove_quotes(etag: str | None) -> Optional[str]:
         etag = etag[2:]
     return etag.strip('"')
 
+
 def connection_unstructure_hook(data: Any, previous: UnstructureHook) -> Any:
     ret = previous(data)
-    ret.pop('_connection', None)
-    ret.pop('_etag', None)
+    ret.pop("_connection", None)
+    ret.pop("_etag", None)
     return ret
-
 
 
 @define(kw_only=True)
@@ -382,8 +536,10 @@ class ConnectionMixin:
 
     _etag: Optional[str] = field(init=False, default=None)
     """etag is automatically injected if it was returned by the repository"""
-    
-    def _set_connection_params(self, connection: Connection, etag: Optional[str] = None) -> None:
+
+    def _set_connection_params(
+        self, connection: Connection, etag: Optional[str] = None
+    ) -> None:
         """Set the connection and etag."""
         self._connection = connection
         self._etag = etag

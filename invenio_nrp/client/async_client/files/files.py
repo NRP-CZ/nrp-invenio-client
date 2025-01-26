@@ -7,7 +7,7 @@
 #
 """Representation of invenio files."""
 
-from enum import StrEnum
+import asyncio
 from pathlib import Path
 from typing import Any, Optional, Self
 
@@ -16,18 +16,15 @@ from yarl import URL
 
 from ....converter import Rename, extend_serialization
 from ....types import Model
+from ...errors import RepositoryClientError
 from ..connection import Connection
 from ..rest import RESTObject, RESTObjectLinks
-from .source import DataSource
-
-
-class TransferType(StrEnum):
-    """Transfer types between local/remote storage and repository."""
-
-    LOCAL = "L"
-    MULTIPART = "M"
-    FETCH = "F"
-    REMOTE = "R"
+from ..streams import DataSink, DataSource
+from .transfer import TransferType
+from .transfer.aws_limits import (
+    MINIMAL_DOWNLOAD_PART_SIZE,
+    adjust_download_multipart_params,
+)
 
 
 @extend_serialization(Rename("type", "type_"), allow_extra_data=True)
@@ -92,6 +89,60 @@ class File(RESTObject):
             result_class=type(self),
         )
 
+    async def download(self, sink: DataSink, 
+                       parts: int | None = None,
+                       part_size: int | None = None) -> None:
+        """Download the file content to a sink.
+
+        Will use
+        :param sink: The sink to download the file to.
+        """
+        if self.links.content is None:
+            raise ValueError("No content link available for the file")
+
+        try:
+            headers = await self._connection.head(url=self.links.content)
+        except RepositoryClientError:
+            # The file is not available for HEAD. This is the case for S3 files
+            # where the file is a pre-signed request. We'll try to download the headers
+            # with a GET request with a range header containing only the first byte.
+            headers = await self._connection.head(url=self.links.content, use_get=True)
+
+        size = 0
+        location = URL(headers.get('Location', self.links.content))
+        
+        if "Content-Length" in headers:
+            size = int(headers["Content-Length"])
+            await sink.allocate(size)
+
+        if (
+            size
+            and size > MINIMAL_DOWNLOAD_PART_SIZE
+            and any(x == "bytes" for x in headers.getall("Accept-Ranges"))
+        ):
+            await self._download_multipart(location, sink, size, parts, part_size)
+        else:
+            await self._download_single(location, sink)
+
+    async def _download_single(self, url: URL, sink: DataSink) -> None:
+        await self._connection.get_stream(url=url, sink=sink, offset=0)
+
+    async def _download_multipart(
+        self, url: URL, sink: DataSink, size: int, parts: int | None = None, part_size: int | None = None
+    ) -> None:
+        adjusted_parts, adjusted_part_size = adjust_download_multipart_params(size, parts, part_size)
+
+        async with asyncio.TaskGroup() as tg:
+            for i in range(adjusted_parts):
+                start = i * adjusted_part_size
+                size = min((i + 1) * adjusted_part_size, size) - start
+                tg.create_task(
+                    self._connection.get_stream(
+                        url=url, sink=sink, offset=start, size=size
+                    )
+
+                )
+
 
 @define(kw_only=True)
 class FilesList(RESTObject):
@@ -137,7 +188,7 @@ class FilesClient:
         self,
         key: str,
         metadata: dict[str, Any],
-        file: DataSource | str | Path,
+        source: DataSource | str | Path,
         transfer_type: TransferType = TransferType.LOCAL,
         transfer_metadata: dict | None = None,
     ) -> File:
@@ -150,10 +201,10 @@ class FilesClient:
         :param transfer_metadata:   extra metadata for the transfer
         :return:                    metadata of the uploaded file
         """
-        if isinstance(file, (str, Path)):
+        if isinstance(source, str | Path):
             from .source.file import FileDataSource
 
-            file = FileDataSource(file)
+            source = FileDataSource(source)
 
         # 1. initialize the upload
         transfer_md: dict[str, Any] = {}
@@ -168,10 +219,9 @@ class FilesClient:
 
         transfer = transfer_registry.get(transfer_type)
 
-        await transfer.prepare(self._connection, 
-                               self._files_endpoint, 
-                               transfer_payload, 
-                               file)
+        await transfer.prepare(
+            self._connection, self._files_endpoint, transfer_payload, source
+        )
 
         initialized_upload: FilesList = await self._connection.post(
             url=self._files_endpoint,
@@ -182,7 +232,7 @@ class FilesClient:
         initialized_upload_metadata = initialized_upload[key]
 
         # 2. upload the file using one of the transfer types
-        await transfer.upload(self._connection, initialized_upload_metadata, file)
+        await transfer.upload(self._connection, initialized_upload_metadata, source)
 
         # 3. prepare the commit payload
         commit_payload = await transfer.get_commit_payload(initialized_upload_metadata)

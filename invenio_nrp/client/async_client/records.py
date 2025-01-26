@@ -242,7 +242,7 @@ class RecordClient:
             query["page"] = str(page)
         if size is not None:
             query["size"] = str(size)
-
+            
         return await self._connection.get(
             url=search_url,
             params=query,

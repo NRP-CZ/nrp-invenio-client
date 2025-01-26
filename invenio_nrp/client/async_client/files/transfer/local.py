@@ -6,12 +6,18 @@
 # details.
 #
 """Local transfer."""
+from __future__ import annotations
 
-from yarl import URL
+from typing import TYPE_CHECKING
 
-from ...connection import Connection
-from ..files import DataSource, File
 from . import Transfer
+
+if TYPE_CHECKING:
+    from yarl import URL
+
+    from ...connection import Connection
+    from ...streams import DataSource
+    from ..files import File
 
 
 class LocalTransfer(Transfer):
@@ -26,21 +32,20 @@ class LocalTransfer(Transfer):
         self,
         connection: Connection,
         initialized_upload: File,
-        file: DataSource,
+        source: DataSource,
     ) -> None:
         """Upload the file."""
         if not initialized_upload.links.content:
             raise ValueError("The upload does not provide the content link.")
         
-        async with file.open() as open_file:  # type: ignore
-            await connection.put_stream(
-                url=initialized_upload.links.content,
-                file=open_file,
-            )
+        await connection.put_stream(
+            url=initialized_upload.links.content,
+            source=source,
+        )
 
     async def prepare(
         self, connection: Connection, files_link: URL, transfer_payload: dict,
-        file: DataSource
+        source: DataSource
     ) -> None:
         """Prepare the transfer."""
         pass

@@ -8,17 +8,15 @@
 """Commandline client for uploading files."""
 
 from pathlib import Path
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 
 import typer
-from typing_extensions import Annotated
 
 from invenio_nrp.cli.base import run_async
 from invenio_nrp.cli.records.get import read_record
 from invenio_nrp.cli.records.metadata import read_metadata
-from invenio_nrp.client.async_client.files.source import DataSource
-from invenio_nrp.client.async_client.files.source.stdin import StdInDataSource
 from invenio_nrp.client.async_client.records import Record
+from invenio_nrp.client.async_client.streams import DataSource, StdInDataSource
 from invenio_nrp.config import Config
 
 
