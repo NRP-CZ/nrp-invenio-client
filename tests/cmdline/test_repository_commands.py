@@ -88,6 +88,8 @@ Repository 'zenodo'
 
 
 async def test_repository_listing_details_json(fs, saved_config_file, in_output):
+    assert saved_config_file.repositories[0].info is None
+    assert saved_config_file.repositories[1].info is None
     result = runner.invoke(
         app,
         ["list", "repositories", "--verbose", "--output-format", "json"],
@@ -123,6 +125,9 @@ async def test_repository_listing_details_json(fs, saved_config_file, in_output)
 
 
 async def test_repository_listing_details_yaml(fs, saved_config_file, in_output):
+    assert saved_config_file.repositories[0].info is None
+    assert saved_config_file.repositories[1].info is None
+
     result = runner.invoke(
         app,
         ["list", "repositories", "--verbose", "--output-format", "yaml"],

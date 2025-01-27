@@ -8,7 +8,7 @@ from invenio_nrp import SyncClient
 from invenio_nrp.config import Config
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def saved_config_file(clear_config, nrp_repository_config: Config) -> Config:
     """Create a pre-filled config in a standard location.
 
@@ -19,7 +19,7 @@ def saved_config_file(clear_config, nrp_repository_config: Config) -> Config:
     cfg.save()
     return cfg
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def default_local(saved_config_file: Config) -> Config:
     """Set the default repository to 'local'."""
     saved_config_file.default_alias = "local"
@@ -28,7 +28,7 @@ def default_local(saved_config_file: Config) -> Config:
     saved_config_file.save()
     return saved_config_file
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def clear_config(fs) -> Iterator[None]:
     """Remove the config file."""
     path = Config.from_file()._config_file_path

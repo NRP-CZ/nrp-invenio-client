@@ -24,7 +24,7 @@ def token_a() -> str:
     """Return the bearer token for the local test repository."""
     return (Path(__file__).parent / "test-repository" / "repo" / ".token_a").read_text().strip()
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def nrp_repository_config(token_a):
     """Return the configuration of the NRP client with a local test repository as well as zenodo."""
     tmp_config_file = Path("/tmp/.test-nrp-config.json")
