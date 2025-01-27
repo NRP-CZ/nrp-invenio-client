@@ -81,4 +81,10 @@ kill_invenio() {
 trap kill_invenio EXIT
 
 # run tests
-pytest -v tests
+(
+  python -m venv .venv-tests
+  source .venv-tests/bin/activate
+  pip install -U setuptools pip wheel
+  pip install -e '.[tests]'
+  pytest -v tests
+)
