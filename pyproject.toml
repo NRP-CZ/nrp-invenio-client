@@ -1,0 +1,49 @@
+[project]
+name = "nrp-invenio-client"
+version = "0.3.1"
+description = "Python and commandline client for NRP Invenio API"
+authors = [
+    {name = "Mirek Simek", email = "miroslav.simek@cesnet.cz"},
+]
+dependencies = [
+    "typer~=0.12.3",
+    "aiohttp[speedups]~=3.10.3",
+    "aiohttp-retry~=2.8.3",
+    "aiofiles>=24.1.0",
+    "pyyaml~=6.0.2",
+    "python-magic~=0.4.27",
+    "humanize",
+    "progressbar2",
+    "requests",
+    "merge_args",
+    "stuf",
+    "deepmerge",
+    "attrs",
+    "cattrs",
+#    "click>=8.1.7",
+#    "dacite>=1.8.1",
+#    "pyyaml>=6.0.1",
+#    "tabulate>=0.9.0",
+#    "httpx[brotli,http2]>=0.26.0",
+#    "tenacity>=8.2.3",
+#    "pyDOI>=0.2.1",
+#    "deepmerge>=1.1.1"
+]
+requires-python = ">=3.12,<4.0"
+readme = "README.md"
+license = {text = "MIT"}
+
+[project.optional-dependencies]
+tests = [
+    "pytest>=8.0.0", 
+    "pytest-asyncio>=0.23", 
+    "pyfakefs"
+]
+docs = ["sphinx", "sphinx-markdown-builder"]
+
+
+[project.scripts]
+nrp-cmd = "invenio_nrp.cli.cli:app"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
