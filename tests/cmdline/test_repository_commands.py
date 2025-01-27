@@ -11,7 +11,7 @@ runner = CliRunner()
 
 
 
-async def test_add_local_repository(fs, token_a):
+async def test_add_local_repository(fs, token_a, clear_config):
     config = Config.from_file()
     assert config.repositories == []
 
@@ -40,6 +40,7 @@ async def test_add_local_repository(fs, token_a):
     assert config.repositories[0].url == URL("https://127.0.0.1:5000")
     assert config.repositories[0].token == token_a
     assert not config.repositories[0].verify_tls
+
 
 
 async def test_repository_listing(fs, saved_config_file, in_output):

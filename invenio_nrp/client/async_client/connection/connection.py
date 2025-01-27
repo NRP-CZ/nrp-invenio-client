@@ -488,7 +488,9 @@ class Connection:
         ):
             actual_data = None
             if data is not None and callable(data):
+                print("data", type(data), data)
                 actual_data = await data()
+                print("actual_data", type(actual_data), actual_data)
                 kwargs["data"] = actual_data
             try:
                 async with (

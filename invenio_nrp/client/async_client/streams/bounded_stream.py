@@ -34,6 +34,10 @@ class BoundedStream(InputStream):
         """Return the stream size."""
         return self.limit
 
+    def __bool__(self):
+        """Return True if the stream can provide data."""
+        return bool(self._remaining)
+
     async def close(self) -> None:
         """Close the underlying stream."""
         await self._stream.close()

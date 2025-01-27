@@ -88,7 +88,12 @@ class MemoryReader(InputStream):
         self._data = data
 
     async def __len__(self):
+        """Return the length of the data."""
         return len(self._data) if self._data is not None else 0
+
+    def __bool__(self):
+        """Return whether there is data to read."""
+        return bool(self._data)
 
     def __aiter__(self):
         """We are our own iterator."""
